@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
 import { useRoute, useLocation } from "wouter";
-import { useBook, useChapter, useUpdateChapter, useGenerateChapter } from "@/hooks/use-books";
+import { useBook, useChapter, useUpdateChapter, useGenerateChapter, useDeleteChapter } from "@/hooks/use-books";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Separator } from "@/components/ui/separator";
+import { Label } from "@/components/ui/label";
 import {
   Sheet,
   SheetContent,
@@ -12,8 +13,28 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { ArrowLeft, Save, Wand2, Info, Loader2, BookOpen } from "lucide-react";
+import { ArrowLeft, Save, Wand2, Info, Loader2, Pencil, Trash2, CheckCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 export default function Editor() {
@@ -27,14 +48,20 @@ export default function Editor() {
   
   const updateChapter = useUpdateChapter();
   const generateChapter = useGenerateChapter();
+  const deleteChapter = useDeleteChapter();
   const { toast } = useToast();
 
   const [content, setContent] = useState("");
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editTitle, setEditTitle] = useState("");
+  const [editSummary, setEditSummary] = useState("");
 
   useEffect(() => {
     if (chapter) {
       setContent(chapter.content || "");
+      setEditTitle(chapter.title);
+      setEditSummary(chapter.summary || "");
     }
   }, [chapter]);
 
@@ -42,7 +69,7 @@ export default function Editor() {
     try {
       await updateChapter.mutateAsync({
         id: chapterId,
-        bookId, // Needed for cache invalidation key
+        bookId,
         content,
         wordCount: content.split(/\s+/).filter(w => w.length > 0).length
       });
@@ -56,10 +83,8 @@ export default function Editor() {
   const handleGenerate = () => {
     generateChapter.mutate({ chapterId, context: "Continue writing from current content..." }, {
       onSuccess: (data) => {
-        // Append generated content
         const newContent = content ? `${content}\n\n${data.content}` : data.content;
         setContent(newContent);
-        // Auto save after generation
         updateChapter.mutate({
           id: chapterId,
           bookId,
@@ -71,6 +96,47 @@ export default function Editor() {
     });
   };
 
+  const handleSaveDetails = async () => {
+    try {
+      await updateChapter.mutateAsync({
+        id: chapterId,
+        bookId,
+        title: editTitle,
+        summary: editSummary,
+      });
+      setEditDialogOpen(false);
+      toast({ title: "Updated", description: "Chapter details saved." });
+    } catch (error) {
+      toast({ title: "Error", description: "Failed to update.", variant: "destructive" });
+    }
+  };
+
+  const handleDelete = async () => {
+    try {
+      await deleteChapter.mutateAsync({ id: chapterId, bookId });
+      toast({ title: "Deleted", description: "Chapter has been removed." });
+      setLocation(`/book/${bookId}`);
+    } catch (error) {
+      toast({ title: "Error", description: "Failed to delete.", variant: "destructive" });
+    }
+  };
+
+  const handleMarkComplete = async () => {
+    try {
+      await updateChapter.mutateAsync({
+        id: chapterId,
+        bookId,
+        isCompleted: !chapter?.isCompleted,
+      });
+      toast({ 
+        title: chapter?.isCompleted ? "Marked as incomplete" : "Marked as complete", 
+        description: chapter?.isCompleted ? "Chapter status updated." : "Great progress!" 
+      });
+    } catch (error) {
+      toast({ title: "Error", description: "Failed to update status.", variant: "destructive" });
+    }
+  };
+
   if (isLoading) {
     return <div className="h-screen flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
   }
@@ -79,14 +145,56 @@ export default function Editor() {
 
   return (
     <div className="h-screen flex flex-col bg-background">
-      {/* Editor Toolbar */}
       <header className="border-b bg-card px-4 py-3 flex items-center justify-between sticky top-0 z-10 shadow-sm">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => setLocation(`/book/${bookId}`)}>
+          <Button variant="ghost" size="icon" onClick={() => setLocation(`/book/${bookId}`)} data-testid="button-back">
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div className="flex flex-col">
-            <h1 className="font-serif font-bold text-lg leading-tight">{chapter.title}</h1>
+            <div className="flex items-center gap-2">
+              <h1 className="font-serif font-bold text-lg leading-tight">{chapter.title}</h1>
+              <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-6 w-6" data-testid="button-edit-chapter">
+                    <Pencil className="h-3 w-3" />
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Edit Chapter Details</DialogTitle>
+                    <DialogDescription>Update the chapter title and summary.</DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4 py-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="title">Chapter Title</Label>
+                      <Input 
+                        id="title" 
+                        value={editTitle} 
+                        onChange={(e) => setEditTitle(e.target.value)}
+                        data-testid="input-chapter-title"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="summary">Summary</Label>
+                      <Textarea 
+                        id="summary" 
+                        value={editSummary} 
+                        onChange={(e) => setEditSummary(e.target.value)}
+                        className="min-h-[100px]"
+                        data-testid="input-chapter-summary"
+                      />
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setEditDialogOpen(false)}>Cancel</Button>
+                    <Button onClick={handleSaveDetails} disabled={updateChapter.isPending} data-testid="button-save-details">
+                      {updateChapter.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                      Save Changes
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            </div>
             <span className="text-xs text-muted-foreground">
               {book?.title} • Ch. {chapter.order} • {content.split(/\s+/).filter(w => w.length > 0).length} words
             </span>
@@ -101,10 +209,21 @@ export default function Editor() {
           )}
           
           <Button 
+            variant={chapter.isCompleted ? "default" : "outline"} 
+            onClick={handleMarkComplete}
+            className="gap-2 hidden sm:flex"
+            data-testid="button-toggle-complete"
+          >
+            <CheckCircle className="h-4 w-4" />
+            {chapter.isCompleted ? "Completed" : "Mark Complete"}
+          </Button>
+
+          <Button 
             variant="outline" 
             onClick={handleSave} 
             disabled={updateChapter.isPending}
             className="gap-2"
+            data-testid="button-save"
           >
             {updateChapter.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
             Save
@@ -114,6 +233,7 @@ export default function Editor() {
             onClick={handleGenerate} 
             disabled={generateChapter.isPending}
             className="gap-2 bg-purple-600 hover:bg-purple-700 text-white"
+            data-testid="button-generate-ai"
           >
             {generateChapter.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wand2 className="h-4 w-4" />}
             Write with AI
@@ -121,7 +241,7 @@ export default function Editor() {
 
           <Sheet>
             <SheetTrigger asChild>
-              <Button variant="secondary" size="icon">
+              <Button variant="secondary" size="icon" data-testid="button-chapter-info">
                 <Info className="h-4 w-4" />
               </Button>
             </SheetTrigger>
@@ -145,13 +265,35 @@ export default function Editor() {
                     </p>
                   </ScrollArea>
                 </div>
+                <div className="pt-4 border-t">
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="destructive" className="w-full gap-2" data-testid="button-delete-chapter">
+                        <Trash2 className="h-4 w-4" /> Delete Chapter
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          This will permanently delete this chapter and all its content. This action cannot be undone.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground" data-testid="button-confirm-delete">
+                          Delete
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
               </div>
             </SheetContent>
           </Sheet>
         </div>
       </header>
 
-      {/* Editor Surface */}
       <main className="flex-1 overflow-hidden bg-muted/10 relative">
         <div className="h-full max-w-4xl mx-auto bg-card shadow-2xl my-0 sm:my-8 rounded-none sm:rounded-lg overflow-hidden flex flex-col border border-border/50">
           <Textarea 
@@ -160,6 +302,7 @@ export default function Editor() {
             value={content}
             onChange={(e) => setContent(e.target.value)}
             spellCheck={false}
+            data-testid="textarea-content"
           />
         </div>
       </main>

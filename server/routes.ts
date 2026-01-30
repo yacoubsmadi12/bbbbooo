@@ -101,6 +101,11 @@ export async function registerRoutes(
     }
   });
 
+  app.delete(api.chapters.delete.path, async (req, res) => {
+    await storage.deleteChapter(Number(req.params.id));
+    res.status(204).send();
+  });
+
   // AI Endpoints
   app.post(api.ai.generateOutline.path, async (req, res) => {
     try {

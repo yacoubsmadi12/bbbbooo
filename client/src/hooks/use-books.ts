@@ -177,6 +177,21 @@ export function useUpdateChapter() {
   });
 }
 
+export function useDeleteChapter() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, bookId }: { id: number; bookId: number }) => {
+      const url = buildUrl(api.chapters.delete.path, { id });
+      const res = await fetch(url, { method: api.chapters.delete.method, credentials: "include" });
+      if (!res.ok) throw new Error("Failed to delete chapter");
+      return bookId;
+    },
+    onSuccess: (bookId) => {
+      queryClient.invalidateQueries({ queryKey: [api.chapters.list.path, bookId] });
+    },
+  });
+}
+
 // ============================================
 // AI GENERATION HOOKS
 // ============================================
