@@ -4,6 +4,7 @@ import { storage } from "./storage";
 import { api } from "@shared/routes";
 import { z } from "zod";
 import OpenAI from "openai";
+import PDFDocument from "pdfkit";
 
 const openai = new OpenAI({
   apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
@@ -208,6 +209,68 @@ export async function registerRoutes(
     } catch (error) {
       console.error("AI Error:", error);
       res.status(500).json({ message: "Failed to generate chapter" });
+    }
+  });
+
+  // PDF Export
+  app.get("/api/books/:id/export-pdf", async (req, res) => {
+    try {
+      const bookId = Number(req.params.id);
+      const book = await storage.getBook(bookId);
+      if (!book) return res.status(404).json({ message: "Book not found" });
+
+      const chapters = await storage.getChapters(bookId);
+
+      const doc = new PDFDocument({
+        size: 'A4',
+        margins: { top: 72, bottom: 72, left: 72, right: 72 },
+        bufferPages: true
+      });
+
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="${book.title.replace(/[^a-zA-Z0-9]/g, '_')}.pdf"`);
+
+      doc.pipe(res);
+
+      // Title Page
+      doc.fontSize(28).font('Helvetica-Bold').text(book.title, { align: 'center' });
+      if (book.subtitle) {
+        doc.moveDown(0.5);
+        doc.fontSize(16).font('Helvetica').text(book.subtitle, { align: 'center' });
+      }
+      doc.moveDown(2);
+      doc.fontSize(14).font('Helvetica').text(`By ${book.authorName}`, { align: 'center' });
+
+      // Table of Contents
+      doc.addPage();
+      doc.fontSize(20).font('Helvetica-Bold').text('Table of Contents', { align: 'center' });
+      doc.moveDown(1);
+
+      chapters.forEach((chapter, index) => {
+        doc.fontSize(12).font('Helvetica').text(`Chapter ${index + 1}: ${chapter.title}`);
+        doc.moveDown(0.3);
+      });
+
+      // Chapters
+      for (const chapter of chapters) {
+        doc.addPage();
+        doc.fontSize(18).font('Helvetica-Bold').text(`Chapter ${chapter.order}: ${chapter.title}`, { align: 'center' });
+        doc.moveDown(1);
+
+        if (chapter.content) {
+          doc.fontSize(11).font('Helvetica').text(chapter.content, {
+            align: 'justify',
+            lineGap: 4
+          });
+        } else {
+          doc.fontSize(11).font('Helvetica-Oblique').text('(No content yet)', { align: 'center' });
+        }
+      }
+
+      doc.end();
+    } catch (error) {
+      console.error("PDF Export Error:", error);
+      res.status(500).json({ message: "Failed to export PDF" });
     }
   });
 

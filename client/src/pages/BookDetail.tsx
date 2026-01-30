@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Wand2, Save, FileText, ChevronRight, Loader2, ArrowLeft } from "lucide-react";
+import { Wand2, Save, FileText, ChevronRight, Loader2, ArrowLeft, Download } from "lucide-react";
 import { type Chapter } from "@shared/schema";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
@@ -104,13 +104,24 @@ export default function BookDetail() {
       </div>
 
       <div className="mb-8">
-        <h1 className="text-4xl font-serif font-bold text-foreground mb-2">{book.title}</h1>
-        <div className="flex items-center gap-4 text-muted-foreground">
-          <span>{book.authorName}</span>
-          <span>•</span>
-          <Badge variant="secondary">{book.genre}</Badge>
-          <span>•</span>
-          <span>{book.language}</span>
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-4xl font-serif font-bold text-foreground mb-2">{book.title}</h1>
+            <div className="flex items-center gap-4 text-muted-foreground">
+              <span>{book.authorName}</span>
+              <span>•</span>
+              <Badge variant="secondary">{book.genre}</Badge>
+              <span>•</span>
+              <span>{book.language}</span>
+            </div>
+          </div>
+          <Button 
+            variant="outline" 
+            onClick={() => window.open(`/api/books/${bookId}/export-pdf`, '_blank')}
+            data-testid="button-export-pdf"
+          >
+            <Download className="h-4 w-4 mr-2" /> Export PDF
+          </Button>
         </div>
       </div>
 
