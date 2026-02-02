@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { api, buildUrl, type InsertBook, type InsertChapter, type GenerateOutlineRequest, type GenerateChapterRequest } from "@shared/routes";
+import { api, buildUrl } from "@shared/routes";
+import type { InsertBook, InsertChapter, GenerateOutlineRequest, GenerateChapterRequest, GenerateChapterImageRequest } from "@shared/schema";
 
 // ============================================
 // BOOKS HOOKS
@@ -230,6 +231,26 @@ export function useGenerateChapter() {
       
       if (!res.ok) throw new Error("AI Generation Failed");
       return api.ai.generateChapter.responses[200].parse(await res.json());
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: [api.chapters.get.path, variables.chapterId] });
+    }
+  });
+}
+
+export function useGenerateChapterImage() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (data: GenerateChapterImageRequest) => {
+      const res = await fetch(api.ai.generateChapterImage.path, {
+        method: api.ai.generateChapterImage.method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+        credentials: "include",
+      });
+      
+      if (!res.ok) throw new Error("Image Generation Failed");
+      return api.ai.generateChapterImage.responses[200].parse(await res.json());
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: [api.chapters.get.path, variables.chapterId] });

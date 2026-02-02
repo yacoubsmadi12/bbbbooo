@@ -36,6 +36,7 @@ export const chapters = pgTable("chapters", {
   order: integer("order").notNull(),
   wordCount: integer("word_count").default(0),
   isCompleted: boolean("is_completed").default(false),
+  imageUrl: text("image_url"), // AI generated image for chapter
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -85,3 +86,8 @@ export const GenerateChapterSchema = z.object({
   context: z.string().optional(), // Extra instructions
 });
 export type GenerateChapterRequest = z.infer<typeof GenerateChapterSchema>;
+
+export const GenerateChapterImageSchema = z.object({
+  chapterId: z.number(),
+});
+export type GenerateChapterImageRequest = z.infer<typeof GenerateChapterImageSchema>;

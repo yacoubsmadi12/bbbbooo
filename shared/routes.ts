@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { insertBookSchema, insertChapterSchema, books, chapters, GenerateOutlineSchema, GenerateChapterSchema } from './schema';
+import { insertBookSchema, insertChapterSchema, books, chapters, GenerateOutlineSchema, GenerateChapterSchema, GenerateChapterImageSchema } from './schema';
 
 export const errorSchemas = {
   validation: z.object({
@@ -117,6 +117,16 @@ export const api = {
       input: GenerateChapterSchema,
       responses: {
         200: z.object({ content: z.string() }),
+        400: errorSchemas.validation,
+        500: errorSchemas.internal
+      },
+    },
+    generateChapterImage: {
+      method: 'POST' as const,
+      path: '/api/ai/generate-chapter-image',
+      input: GenerateChapterImageSchema,
+      responses: {
+        200: z.object({ imageUrl: z.string() }),
         400: errorSchemas.validation,
         500: errorSchemas.internal
       },

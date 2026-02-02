@@ -217,6 +217,45 @@ export async function registerRoutes(
     }
   });
 
+  // Generate Chapter Image
+  app.post(api.ai.generateChapterImage.path, async (req, res) => {
+    try {
+      const { chapterId } = api.ai.generateChapterImage.input.parse(req.body);
+      const chapter = await storage.getChapter(chapterId);
+      if (!chapter) return res.status(404).json({ message: "Chapter not found" });
+
+      const book = await storage.getBook(chapter.bookId);
+      if (!book) return res.status(404).json({ message: "Book not found" });
+
+      // Create a prompt for image generation based on chapter content
+      const imagePrompt = `Create a beautiful, artistic illustration for a book chapter.
+Book: "${book.title}" (${book.genre})
+Chapter: "${chapter.title}"
+Chapter Summary: ${chapter.summary || "A compelling scene from the story"}
+Style: High quality, artistic book illustration, detailed, atmospheric, suitable for ${book.targetAudience} readers.`;
+
+      const response = await openai.images.generate({
+        model: "gpt-image-1",
+        prompt: imagePrompt,
+        n: 1,
+        size: "1024x1024",
+      });
+
+      // Get the base64 image data
+      const imageData = response.data[0];
+      const imageUrl = `data:image/png;base64,${imageData.b64_json}`;
+
+      // Update chapter with image URL
+      await storage.updateChapter(chapterId, { imageUrl });
+
+      res.json({ imageUrl });
+
+    } catch (error) {
+      console.error("AI Image Error:", error);
+      res.status(500).json({ message: "Failed to generate chapter image" });
+    }
+  });
+
   // PDF Export
   app.get("/api/books/:id/export-pdf", async (req, res) => {
     try {
@@ -248,19 +287,23 @@ export async function registerRoutes(
 
       // Table of Contents
       doc.addPage();
-      doc.fontSize(20).font('Helvetica-Bold').text('Table of Contents', { align: 'center' });
-      doc.moveDown(1);
+      doc.fontSize(24).font('Helvetica-Bold').text('Table of Contents', { align: 'center' });
+      doc.moveDown(2);
 
-      chapters.forEach((chapter, index) => {
-        doc.fontSize(12).font('Helvetica').text(`Chapter ${index + 1}: ${chapter.title}`);
-        doc.moveDown(0.3);
+      const sortedChapters = chapters.sort((a, b) => a.order - b.order);
+      sortedChapters.forEach((chapter) => {
+        doc.fontSize(12).font('Helvetica-Bold').text(`${chapter.order}.`, { continued: true, width: 30 });
+        doc.font('Helvetica').text(`  ${chapter.title}`, { indent: 30 });
+        doc.moveDown(0.5);
       });
 
       // Chapters
-      for (const chapter of chapters) {
+      for (const chapter of sortedChapters) {
         doc.addPage();
-        doc.fontSize(18).font('Helvetica-Bold').text(`Chapter ${chapter.order}: ${chapter.title}`, { align: 'center' });
-        doc.moveDown(1);
+        doc.fontSize(14).font('Helvetica').text(`Chapter ${chapter.order}`, { align: 'center' });
+        doc.moveDown(0.3);
+        doc.fontSize(22).font('Helvetica-Bold').text(chapter.title, { align: 'center' });
+        doc.moveDown(1.5);
 
         if (chapter.content) {
           doc.fontSize(11).font('Helvetica').text(chapter.content, {

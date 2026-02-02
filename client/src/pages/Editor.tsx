@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useRoute, useLocation } from "wouter";
-import { useBook, useChapter, useUpdateChapter, useGenerateChapter, useDeleteChapter } from "@/hooks/use-books";
+import { useBook, useChapter, useUpdateChapter, useGenerateChapter, useDeleteChapter, useGenerateChapterImage } from "@/hooks/use-books";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -34,7 +34,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { ArrowLeft, Save, Wand2, Info, Loader2, Pencil, Trash2, CheckCircle } from "lucide-react";
+import { ArrowLeft, Save, Wand2, Info, Loader2, Pencil, Trash2, CheckCircle, ImageIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 export default function Editor() {
@@ -48,6 +48,7 @@ export default function Editor() {
   
   const updateChapter = useUpdateChapter();
   const generateChapter = useGenerateChapter();
+  const generateChapterImage = useGenerateChapterImage();
   const deleteChapter = useDeleteChapter();
   const { toast } = useToast();
 
@@ -135,6 +136,17 @@ export default function Editor() {
     } catch (error) {
       toast({ title: "Error", description: "Failed to update status.", variant: "destructive" });
     }
+  };
+
+  const handleGenerateImage = () => {
+    generateChapterImage.mutate({ chapterId }, {
+      onSuccess: () => {
+        toast({ title: "Image Generated", description: "A beautiful illustration has been created for this chapter!" });
+      },
+      onError: () => {
+        toast({ title: "Error", description: "Failed to generate image.", variant: "destructive" });
+      }
+    });
   };
 
   if (isLoading) {
@@ -239,6 +251,17 @@ export default function Editor() {
             Write with AI
           </Button>
 
+          <Button
+            onClick={handleGenerateImage}
+            disabled={generateChapterImage.isPending}
+            variant="outline"
+            className="gap-2"
+            data-testid="button-generate-image"
+          >
+            {generateChapterImage.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImageIcon className="h-4 w-4" />}
+            <span className="hidden sm:inline">Generate Image</span>
+          </Button>
+
           <Sheet>
             <SheetTrigger asChild>
               <Button variant="secondary" size="icon" data-testid="button-chapter-info">
@@ -251,6 +274,19 @@ export default function Editor() {
                 <SheetDescription>Context for the AI assistant.</SheetDescription>
               </SheetHeader>
               <div className="mt-6 space-y-6">
+                {chapter.imageUrl && (
+                  <div>
+                    <h4 className="text-sm font-medium mb-2">Chapter Illustration</h4>
+                    <div className="rounded-lg overflow-hidden border">
+                      <img 
+                        src={chapter.imageUrl} 
+                        alt={`Illustration for ${chapter.title}`}
+                        className="w-full h-auto object-cover"
+                        data-testid="img-chapter-illustration"
+                      />
+                    </div>
+                  </div>
+                )}
                 <div>
                   <h4 className="text-sm font-medium mb-2">Summary</h4>
                   <div className="p-3 bg-muted rounded-md text-sm">
@@ -259,7 +295,7 @@ export default function Editor() {
                 </div>
                 <div>
                   <h4 className="text-sm font-medium mb-2">Book Outline</h4>
-                  <ScrollArea className="h-[300px] w-full rounded-md border p-4">
+                  <ScrollArea className="h-[200px] w-full rounded-md border p-4">
                     <p className="text-sm text-muted-foreground whitespace-pre-wrap">
                       {book?.outline || "No outline available."}
                     </p>
