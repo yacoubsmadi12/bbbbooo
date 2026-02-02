@@ -350,51 +350,92 @@ Style: High quality, artistic book illustration, detailed, atmospheric, suitable
 
       // Chapters with images
       for (const chapter of sortedChapters) {
+        // Chapter title page with image (full page illustration)
         doc.addPage();
         
-        // Chapter header
-        doc.fontSize(12).font('Helvetica').fillColor('#666666').text(`CHAPTER ${chapter.order}`, { align: 'center' });
-        doc.moveDown(0.5);
-        doc.fontSize(24).font('Helvetica-Bold').fillColor('#000000').text(chapter.title, { align: 'center' });
-        doc.moveDown(0.3);
-        doc.moveTo(doc.page.margins.left + pageWidth * 0.35, doc.y)
-           .lineTo(doc.page.margins.left + pageWidth * 0.65, doc.y)
-           .strokeColor('#cccccc')
-           .lineWidth(1)
-           .stroke();
-        doc.moveDown(1.5);
-
-        // Chapter image if available
+        // Chapter image as full-page illustration (if available)
         if (chapter.imageUrl && chapter.imageUrl.startsWith('data:image')) {
           try {
-            // Extract base64 data from data URI
             const base64Data = chapter.imageUrl.split(',')[1];
             if (base64Data) {
               const imageBuffer = Buffer.from(base64Data, 'base64');
-              const imageWidth = Math.min(pageWidth * 0.8, 350);
-              const imageX = doc.page.margins.left + (pageWidth - imageWidth) / 2;
+              const maxImageWidth = pageWidth;
+              const maxImageHeight = 280;
               
-              doc.image(imageBuffer, imageX, doc.y, { 
-                width: imageWidth,
+              // Center image at top of page
+              doc.image(imageBuffer, doc.page.margins.left, doc.y, { 
+                fit: [maxImageWidth, maxImageHeight],
                 align: 'center'
               });
-              doc.moveDown(1);
-              doc.y += imageWidth * 0.75 + 20; // Approximate image height + spacing
+              doc.y += maxImageHeight + 30;
             }
           } catch (imgError) {
             console.error("Error embedding chapter image:", imgError);
+            doc.moveDown(2);
           }
+        } else {
+          doc.moveDown(4);
         }
 
-        // Chapter content
+        // Chapter header below image
+        doc.fontSize(11).font('Helvetica').fillColor('#888888').text(`CHAPTER ${chapter.order}`, { align: 'center' });
+        doc.moveDown(0.4);
+        doc.fontSize(22).font('Helvetica-Bold').fillColor('#000000').text(chapter.title, { align: 'center' });
+        doc.moveDown(0.4);
+        
+        // Decorative line
+        const lineY = doc.y;
+        doc.moveTo(doc.page.margins.left + pageWidth * 0.35, lineY)
+           .lineTo(doc.page.margins.left + pageWidth * 0.65, lineY)
+           .strokeColor('#dddddd')
+           .lineWidth(1)
+           .stroke();
+        
+        // Chapter summary if available
+        if (chapter.summary) {
+          doc.moveDown(1.5);
+          doc.fontSize(10).font('Helvetica-Oblique').fillColor('#666666').text(chapter.summary, { 
+            align: 'center',
+            width: pageWidth * 0.8,
+            indent: pageWidth * 0.1
+          });
+        }
+
+        // Content page (new page for the actual text)
+        doc.addPage();
+        
+        // Small chapter indicator at top
+        doc.fontSize(9).font('Helvetica').fillColor('#aaaaaa').text(`Chapter ${chapter.order}`, { align: 'center' });
+        doc.moveDown(1.5);
+
+        // Chapter content with professional typography
         if (chapter.content) {
-          doc.fontSize(11).font('Helvetica').fillColor('#000000').text(chapter.content, {
-            align: 'justify',
-            lineGap: 5,
-            paragraphGap: 10
+          // Split content into paragraphs for better formatting
+          const paragraphs = chapter.content.split(/\n\n+/);
+          
+          paragraphs.forEach((paragraph, idx) => {
+            const trimmed = paragraph.trim();
+            if (trimmed) {
+              // First paragraph gets drop cap style (larger first letter effect via indent)
+              if (idx === 0) {
+                doc.fontSize(11).font('Helvetica').fillColor('#000000').text(trimmed, {
+                  align: 'justify',
+                  lineGap: 6,
+                  indent: 20
+                });
+              } else {
+                doc.fontSize(11).font('Helvetica').fillColor('#000000').text(trimmed, {
+                  align: 'justify',
+                  lineGap: 6,
+                  indent: 20
+                });
+              }
+              doc.moveDown(0.8);
+            }
           });
         } else {
-          doc.fontSize(11).font('Helvetica-Oblique').fillColor('#999999').text('(No content yet)', { align: 'center' });
+          doc.moveDown(4);
+          doc.fontSize(11).font('Helvetica-Oblique').fillColor('#999999').text('Content coming soon...', { align: 'center' });
         }
       }
 
