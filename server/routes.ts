@@ -276,42 +276,125 @@ Style: High quality, artistic book illustration, detailed, atmospheric, suitable
 
       doc.pipe(res);
 
-      // Title Page
-      doc.fontSize(28).font('Helvetica-Bold').text(book.title, { align: 'center' });
-      if (book.subtitle) {
-        doc.moveDown(0.5);
-        doc.fontSize(16).font('Helvetica').text(book.subtitle, { align: 'center' });
-      }
-      doc.moveDown(2);
-      doc.fontSize(14).font('Helvetica').text(`By ${book.authorName}`, { align: 'center' });
+      const pageWidth = doc.page.width - doc.page.margins.left - doc.page.margins.right;
 
-      // Table of Contents
+      // Title Page - elegant centered design
+      doc.moveDown(6);
+      doc.fontSize(32).font('Helvetica-Bold').text(book.title, { align: 'center' });
+      if (book.subtitle) {
+        doc.moveDown(0.8);
+        doc.fontSize(18).font('Helvetica-Oblique').text(book.subtitle, { align: 'center' });
+      }
+      doc.moveDown(3);
+      doc.fontSize(14).font('Helvetica').text(`by`, { align: 'center' });
+      doc.moveDown(0.3);
+      doc.fontSize(16).font('Helvetica-Bold').text(book.authorName, { align: 'center' });
+
+      // Table of Contents - Amazon Kindle style
       doc.addPage();
-      doc.fontSize(24).font('Helvetica-Bold').text('Table of Contents', { align: 'center' });
+      doc.moveDown(1);
+      doc.fontSize(28).font('Helvetica-Bold').text('Contents', { align: 'center' });
+      doc.moveDown(0.5);
+      doc.moveTo(doc.page.margins.left + pageWidth * 0.3, doc.y)
+         .lineTo(doc.page.margins.left + pageWidth * 0.7, doc.y)
+         .strokeColor('#cccccc')
+         .lineWidth(1)
+         .stroke();
       doc.moveDown(2);
 
       const sortedChapters = chapters.sort((a, b) => a.order - b.order);
-      sortedChapters.forEach((chapter) => {
-        doc.fontSize(12).font('Helvetica-Bold').text(`${chapter.order}.`, { continued: true, width: 30 });
-        doc.font('Helvetica').text(`  ${chapter.title}`, { indent: 30 });
-        doc.moveDown(0.5);
+      
+      // Calculate page numbers (TOC is page 2, chapters start at page 3)
+      let currentPage = 3;
+      const chapterPages: number[] = [];
+      
+      sortedChapters.forEach(() => {
+        chapterPages.push(currentPage);
+        currentPage += 1; // Each chapter gets at least one page
       });
 
-      // Chapters
+      // Draw TOC entries with dotted leaders
+      sortedChapters.forEach((chapter, index) => {
+        const startX = doc.page.margins.left;
+        const endX = doc.page.margins.left + pageWidth;
+        const y = doc.y;
+        
+        // Chapter number and title
+        const chapterText = `${chapter.order}. ${chapter.title}`;
+        const pageNum = chapterPages[index].toString();
+        
+        // Measure text widths
+        doc.fontSize(12).font('Helvetica');
+        const titleWidth = doc.widthOfString(chapterText);
+        const pageNumWidth = doc.widthOfString(pageNum);
+        
+        // Draw chapter title
+        doc.text(chapterText, startX, y, { continued: false });
+        
+        // Draw dotted leader
+        const dotsStartX = startX + titleWidth + 10;
+        const dotsEndX = endX - pageNumWidth - 10;
+        let dotX = dotsStartX;
+        doc.fontSize(10).fillColor('#888888');
+        while (dotX < dotsEndX) {
+          doc.text('.', dotX, y, { continued: false, lineBreak: false });
+          dotX += 6;
+        }
+        
+        // Draw page number (right-aligned)
+        doc.fontSize(12).font('Helvetica').fillColor('#000000');
+        doc.text(pageNum, endX - pageNumWidth, y, { continued: false, lineBreak: false });
+        
+        doc.y = y + 24;
+      });
+
+      // Chapters with images
       for (const chapter of sortedChapters) {
         doc.addPage();
-        doc.fontSize(14).font('Helvetica').text(`Chapter ${chapter.order}`, { align: 'center' });
+        
+        // Chapter header
+        doc.fontSize(12).font('Helvetica').fillColor('#666666').text(`CHAPTER ${chapter.order}`, { align: 'center' });
+        doc.moveDown(0.5);
+        doc.fontSize(24).font('Helvetica-Bold').fillColor('#000000').text(chapter.title, { align: 'center' });
         doc.moveDown(0.3);
-        doc.fontSize(22).font('Helvetica-Bold').text(chapter.title, { align: 'center' });
+        doc.moveTo(doc.page.margins.left + pageWidth * 0.35, doc.y)
+           .lineTo(doc.page.margins.left + pageWidth * 0.65, doc.y)
+           .strokeColor('#cccccc')
+           .lineWidth(1)
+           .stroke();
         doc.moveDown(1.5);
 
+        // Chapter image if available
+        if (chapter.imageUrl && chapter.imageUrl.startsWith('data:image')) {
+          try {
+            // Extract base64 data from data URI
+            const base64Data = chapter.imageUrl.split(',')[1];
+            if (base64Data) {
+              const imageBuffer = Buffer.from(base64Data, 'base64');
+              const imageWidth = Math.min(pageWidth * 0.8, 350);
+              const imageX = doc.page.margins.left + (pageWidth - imageWidth) / 2;
+              
+              doc.image(imageBuffer, imageX, doc.y, { 
+                width: imageWidth,
+                align: 'center'
+              });
+              doc.moveDown(1);
+              doc.y += imageWidth * 0.75 + 20; // Approximate image height + spacing
+            }
+          } catch (imgError) {
+            console.error("Error embedding chapter image:", imgError);
+          }
+        }
+
+        // Chapter content
         if (chapter.content) {
-          doc.fontSize(11).font('Helvetica').text(chapter.content, {
+          doc.fontSize(11).font('Helvetica').fillColor('#000000').text(chapter.content, {
             align: 'justify',
-            lineGap: 4
+            lineGap: 5,
+            paragraphGap: 10
           });
         } else {
-          doc.fontSize(11).font('Helvetica-Oblique').text('(No content yet)', { align: 'center' });
+          doc.fontSize(11).font('Helvetica-Oblique').fillColor('#999999').text('(No content yet)', { align: 'center' });
         }
       }
 
