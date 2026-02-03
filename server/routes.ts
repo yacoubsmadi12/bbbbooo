@@ -114,7 +114,7 @@ export async function registerRoutes(
       if (!book) return res.status(404).json({ message: "Book not found" });
 
       const prompt = `
-        Create a detailed book outline and chapter list for a novel with the following details:
+        Create a detailed book outline, author biography, and conclusion for a novel with the following details:
         Title: ${book.title}
         Subtitle: ${book.subtitle}
         Author: ${book.authorName}
@@ -126,7 +126,9 @@ export async function registerRoutes(
 
         Return a JSON object with:
         1. "outline": A summary of the book's plot.
-        2. "chapters": An array of objects, each having "title" and "summary" for each chapter.
+        2. "authorBio": A professional and engaging biography for ${book.authorName}.
+        3. "conclusion": A powerful and satisfying concluding section for the book.
+        4. "chapters": An array of objects, each having "title" and "summary" for each chapter.
       `;
 
       const response = await openai.chat.completions.create({
@@ -137,8 +139,12 @@ export async function registerRoutes(
 
       const result = JSON.parse(response.choices[0].message.content || "{}");
       
-      // Update book with outline
-      await storage.updateBook(bookId, { outline: result.outline });
+      // Update book with outline, author bio, and conclusion
+      await storage.updateBook(bookId, { 
+        outline: result.outline,
+        authorBio: result.authorBio,
+        conclusion: result.conclusion
+      });
 
       // Create chapters
       const createdChapters = [];
@@ -437,6 +443,24 @@ Style: High quality, artistic book illustration, detailed, atmospheric, suitable
           doc.moveDown(4);
           doc.fontSize(11).font('Helvetica-Oblique').fillColor('#999999').text('Content coming soon...', { align: 'center' });
         }
+      }
+
+      // Conclusion Page
+      if (book.conclusion) {
+        doc.addPage();
+        doc.moveDown(4);
+        doc.fontSize(24).font('Helvetica-Bold').text('Conclusion', { align: 'center' });
+        doc.moveDown(2);
+        doc.fontSize(12).font('Helvetica').text(book.conclusion, { align: 'justify', lineGap: 6 });
+      }
+
+      // About the Author
+      if (book.authorBio) {
+        doc.addPage();
+        doc.moveDown(4);
+        doc.fontSize(24).font('Helvetica-Bold').text('About the Author', { align: 'center' });
+        doc.moveDown(2);
+        doc.fontSize(12).font('Helvetica').text(book.authorBio, { align: 'justify', lineGap: 6 });
       }
 
       doc.end();

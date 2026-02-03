@@ -24,6 +24,8 @@ export const books = pgTable("books", {
   targetChapters: integer("target_chapters").notNull().default(10),
   wordsPerChapter: integer("words_per_chapter").notNull().default(2000),
   outline: text("outline"), // General book outline/overview
+  authorBio: text("author_bio"),
+  conclusion: text("conclusion"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
