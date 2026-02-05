@@ -12,15 +12,12 @@ declare module "http" {
   }
 }
 
-app.use(
-  express.json({
-    verify: (req, _res, buf) => {
-      req.rawBody = buf;
-    },
-  }),
-);
+// Use a very high limit for JSON and URL-encoded bodies to handle AI-generated images
+const limit = "50mb";
 
-app.use(express.urlencoded({ extended: false }));
+app.use(express.json({ limit, verify: (req, _res, buf) => { req.rawBody = buf; } }));
+app.use(express.urlencoded({ extended: false, limit }));
+
 
 export function log(message: string, source = "express") {
   const formattedTime = new Date().toLocaleTimeString("en-US", {

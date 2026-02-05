@@ -11,10 +11,13 @@ const openai = new OpenAI({
   baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
 });
 
+// The global body parser in index.ts already handles the limits
 export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
+  // No need to app.use(jsonParser) here if it's already in index.ts
+  // but let's keep it consistent if needed, ensuring the limit is high.
 
   // Books
   app.get(api.books.list.path, async (req, res) => {
@@ -153,9 +156,6 @@ export async function registerRoutes(
       // Create chapters
       const createdChapters = [];
       if (Array.isArray(result.chapters)) {
-        // Delete existing chapters if any? No, let's append or let user handle.
-        // Actually, user probably wants fresh chapters if they ask for outline generation.
-        // For safety, let's just add them.
         let order = 1;
         for (const chap of result.chapters) {
           const newChap = await storage.createChapter({
@@ -164,7 +164,6 @@ export async function registerRoutes(
             summary: chap.summary,
             content: "",
             order: order++,
-            wordCount: 0,
             isCompleted: false
           });
           createdChapters.push({ title: newChap.title, summary: newChap.summary });
