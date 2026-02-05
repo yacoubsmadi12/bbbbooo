@@ -35,11 +35,11 @@ export function CreateBookDialog() {
     defaultValues: {
       title: "",
       authorName: "",
-      genre: "الرواية",
-      language: "Arabic",
-      targetAudience: "البالغين",
-      toneStyle: "جذاب",
-      pov: "ضمير الغائب",
+      genre: "Novel",
+      language: "English",
+      targetAudience: "Adults",
+      toneStyle: "Engaging",
+      pov: "Third Person",
       minWordCount: 50000,
       targetChapters: 10,
       wordsPerChapter: 2500,
@@ -59,14 +59,14 @@ export function CreateBookDialog() {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button className="gap-2 shadow-lg hover:shadow-primary/20 transition-all">
-          <Plus className="h-4 w-4" /> مشروع كتاب جديد
+          <Plus className="h-4 w-4" /> New Book Project
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto" dir="rtl">
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="font-serif text-2xl text-right">ابدأ كتابًا جديدًا</DialogTitle>
-          <DialogDescription className="text-right">
-            أدخل البيانات الوصفية لتحفتك الجديدة. سيستخدم الذكاء الاصطناعي هذا لتوجيه التوليد.
+          <DialogTitle className="font-serif text-2xl">Start a New Book</DialogTitle>
+          <DialogDescription>
+            Enter the metadata for your new masterpiece. AI will use this to guide generation.
           </DialogDescription>
         </DialogHeader>
 
@@ -78,9 +78,9 @@ export function CreateBookDialog() {
                 name="title"
                 render={({ field }) => (
                   <FormItem className="col-span-2">
-                    <FormLabel className="flex justify-start">عنوان الكتاب</FormLabel>
+                    <FormLabel className="flex justify-start">Book Title</FormLabel>
                     <FormControl>
-                      <Input placeholder="العنوان الرائع" className="font-serif text-lg text-right" {...field} />
+                      <Input placeholder="A Great Title" className="font-serif text-lg" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -92,9 +92,9 @@ export function CreateBookDialog() {
                 name="authorName"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="flex justify-start">اسم المؤلف</FormLabel>
+                    <FormLabel className="flex justify-start">Author Name</FormLabel>
                     <FormControl>
-                      <Input placeholder="اسمك الكريم" className="text-right" {...field} />
+                      <Input placeholder="Your Name" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -106,9 +106,9 @@ export function CreateBookDialog() {
                 name="genre"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="flex justify-start">النوع</FormLabel>
+                    <FormLabel className="flex justify-start">Genre</FormLabel>
                     <FormControl>
-                      <Input placeholder="خيال علمي، إثارة، رومانسي..." className="text-right" {...field} />
+                      <Input placeholder="Sci-Fi, Thriller, Romance..." {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -120,9 +120,9 @@ export function CreateBookDialog() {
                 name="targetAudience"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="flex justify-start">الجمهور المستهدف</FormLabel>
+                    <FormLabel className="flex justify-start">Target Audience</FormLabel>
                     <FormControl>
-                      <Input placeholder="الشباب، المحترفون..." className="text-right" {...field} />
+                      <Input placeholder="Young Adults, Professionals..." {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -134,9 +134,9 @@ export function CreateBookDialog() {
                 name="toneStyle"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="flex justify-start">النبرة والأسلوب</FormLabel>
+                    <FormLabel className="flex justify-start">Tone and Style</FormLabel>
                     <FormControl>
-                      <Input placeholder="غامض، فكاهي، أكاديمي..." className="text-right" {...field} />
+                      <Input placeholder="Mysterious, Humorous, Academic..." {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -148,9 +148,9 @@ export function CreateBookDialog() {
                 name="pov"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="flex justify-start">وجهة النظر</FormLabel>
+                    <FormLabel className="flex justify-start">Point of View</FormLabel>
                     <FormControl>
-                      <Input placeholder="ضمير المتكلم، ضمير الغائب..." className="text-right" {...field} />
+                      <Input placeholder="First Person, Third Person..." {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -159,14 +159,14 @@ export function CreateBookDialog() {
             </div>
 
             <div className="bg-muted/50 p-4 rounded-lg space-y-4 border border-border/50">
-              <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wider text-right">قيود الطول</h4>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4" dir="ltr">
+              <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wider">Length Constraints</h4>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <FormField
                   control={form.control}
                   name="minWordCount"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="flex justify-center">إجمالي الكلمات</FormLabel>
+                      <FormLabel className="flex justify-center">Total Words</FormLabel>
                       <FormControl>
                         <Input type="number" {...field} onChange={(e) => field.onChange(parseInt(e.target.value))} />
                       </FormControl>
@@ -178,7 +178,7 @@ export function CreateBookDialog() {
                   name="targetChapters"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="flex justify-center">عدد الفصول</FormLabel>
+                      <FormLabel className="flex justify-center">Chapters</FormLabel>
                       <FormControl>
                         <Input type="number" {...field} onChange={(e) => field.onChange(parseInt(e.target.value))} />
                       </FormControl>
@@ -190,7 +190,7 @@ export function CreateBookDialog() {
                   name="wordsPerChapter"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="flex justify-center">كلمة/فصل</FormLabel>
+                      <FormLabel className="flex justify-center">Words/Chapter</FormLabel>
                       <FormControl>
                         <Input type="number" {...field} onChange={(e) => field.onChange(parseInt(e.target.value))} />
                       </FormControl>
@@ -201,10 +201,10 @@ export function CreateBookDialog() {
             </div>
 
             <DialogFooter className="gap-2">
-              <Button type="button" variant="outline" onClick={() => setOpen(false)}>إلغاء</Button>
+              <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
               <Button type="submit" disabled={createBook.isPending}>
                 {createBook.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                إنشاء المشروع
+                Create Project
               </Button>
             </DialogFooter>
           </form>

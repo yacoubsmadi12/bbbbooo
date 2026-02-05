@@ -93,10 +93,10 @@ export default function BookDetail() {
       if (!response.ok) throw new Error("Failed to generate cover");
       const data = await response.json();
       await updateBook.mutateAsync({ id: bookId, coverImageUrl: data.imageUrl });
-      toast({ title: "تم توليد الغلاف", description: "غلاف أمازون كيندل جاهز!" });
+      toast({ title: "Cover Generated", description: "Your Amazon Kindle cover is ready!" });
       window.open(data.imageUrl, "_blank");
     } catch (err) {
-      toast({ title: "خطأ", description: "فشل توليد غلاف الكتاب.", variant: "destructive" });
+      toast({ title: "Error", description: "Failed to generate cover.", variant: "destructive" });
     } finally {
       setGeneratingCover(false);
     }
@@ -111,9 +111,9 @@ export default function BookDetail() {
         body: JSON.stringify({ bookId }),
       });
       if (!response.ok) throw new Error("Failed to generate keywords");
-      toast({ title: "تم توليد الكلمات المفتاحية", description: "تم إنشاء كلمات SEO لأمازون!" });
+      toast({ title: "Keywords Generated", description: "Amazon SEO keywords created!" });
     } catch (err) {
-      toast({ title: "خطأ", description: "فشل توليد الكلمات المفتاحية.", variant: "destructive" });
+      toast({ title: "Error", description: "Failed to generate keywords.", variant: "destructive" });
     } finally {
       setGeneratingKeywords(false);
     }
@@ -130,7 +130,7 @@ export default function BookDetail() {
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
-    toast({ title: "تم النسخ!", description: "تم نسخ الكلمة المفتاحية إلى الحافظة." });
+    toast({ title: "Copied!", description: "Keyword copied to clipboard." });
   };
 
   const handleCreateChapter = () => {
@@ -175,7 +175,7 @@ export default function BookDetail() {
                 onClick={() => window.open(`/api/books/${bookId}/export-pdf`, '_blank')}
                 data-testid="button-export-pdf"
               >
-                <Download className="h-4 w-4 mr-2" /> تصدير PDF
+                <Download className="h-4 w-4 mr-2" /> Export PDF
               </Button>
               <Button 
                 variant="outline" 
@@ -183,7 +183,7 @@ export default function BookDetail() {
                 data-testid="button-export-project"
                 className="border-primary text-primary hover:bg-primary/5"
               >
-                <Download className="h-4 w-4 mr-2" /> تحميل ملف المشروع (.zip)
+                <Download className="h-4 w-4 mr-2" /> Download Project (.zip)
               </Button>
             </div>
           </div>
@@ -191,10 +191,10 @@ export default function BookDetail() {
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <TabsList className="grid w-full grid-cols-4 max-w-xl">
-          <TabsTrigger value="outline">المخطط والحبكة</TabsTrigger>
-          <TabsTrigger value="chapters">الفصول</TabsTrigger>
-          <TabsTrigger value="publishing">النشر في أمازون</TabsTrigger>
-          <TabsTrigger value="settings">البيانات الوصفية</TabsTrigger>
+          <TabsTrigger value="outline">Outline & Plot</TabsTrigger>
+          <TabsTrigger value="chapters">Chapters</TabsTrigger>
+          <TabsTrigger value="publishing">Amazon Publishing</TabsTrigger>
+          <TabsTrigger value="settings">Metadata</TabsTrigger>
         </TabsList>
 
         <TabsContent value="outline" className="space-y-6">
@@ -203,8 +203,8 @@ export default function BookDetail() {
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between gap-1 space-y-0 pb-2">
                   <div className="space-y-1">
-                    <CardTitle className="text-xl">مخطط الكتاب</CardTitle>
-                    <CardDescription>الهيكل العام لقصتك.</CardDescription>
+                    <CardTitle className="text-xl">Book Outline</CardTitle>
+                    <CardDescription>The overall structure of your story.</CardDescription>
                   </div>
                   <div className="flex gap-2">
                     <Button 
@@ -215,11 +215,11 @@ export default function BookDetail() {
                     >
                       {generateOutline.isPending ? (
                         <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" /> جاري التوليد...
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Generating...
                         </>
                       ) : (
                         <>
-                          <Wand2 className="mr-2 h-4 w-4" /> توليد بالذكاء الاصطناعي
+                          <Wand2 className="mr-2 h-4 w-4" /> Generate with AI
                         </>
                       )}
                     </Button>
@@ -228,7 +228,7 @@ export default function BookDetail() {
                 <CardContent>
                   <Textarea 
                     className="min-h-[400px] font-serif text-lg leading-relaxed bg-paper resize-none focus-visible:ring-1"
-                    placeholder="اضغط على 'توليد بالذكاء الاصطناعي' لإنشاء مخطط شامل بناءً على بيانات كتابك..."
+                    placeholder="Click 'Generate with AI' to create a comprehensive outline based on your book metadata..."
                     defaultValue={book.outline || ""}
                     onChange={(e) => setLocalOutline(e.target.value)}
                   />
@@ -238,7 +238,7 @@ export default function BookDetail() {
                         variant="outline"
                         className="gap-2"
                       >
-                        <Save className="h-4 w-4" /> حفظ المخطط يدويًا
+                        <Save className="h-4 w-4" /> Save Outline Manually
                       </Button>
                   </div>
                 </CardContent>
@@ -248,15 +248,15 @@ export default function BookDetail() {
             <div className="space-y-6">
               <Card className="bg-muted/30">
                 <CardHeader>
-                  <CardTitle className="text-lg">الإحصائيات</CardTitle>
+                  <CardTitle className="text-lg">Statistics</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="flex justify-between items-center py-2 border-b">
-                    <span className="text-muted-foreground">الطول المستهدف</span>
-                    <span className="font-mono">{book.minWordCount.toLocaleString()} كلمة</span>
+                    <span className="text-muted-foreground">Target Length</span>
+                    <span className="font-mono">{book.minWordCount.toLocaleString()} words</span>
                   </div>
                   <div className="flex justify-between items-center py-2 border-b">
-                    <span className="text-muted-foreground">الفصول المستهدفة</span>
+                    <span className="text-muted-foreground">Target Chapters</span>
                     <div className="flex items-center gap-2">
                       <Input
                         type="number"
@@ -272,31 +272,31 @@ export default function BookDetail() {
                     </div>
                   </div>
                   <div className="flex justify-between items-center py-2 border-b">
-                    <span className="text-muted-foreground">الفصول الحالية</span>
+                    <span className="text-muted-foreground">Current Chapters</span>
                     <span className="font-mono">{chapters?.length}</span>
                   </div>
                   <div className="flex justify-between items-center py-2 border-b">
-                    <span className="text-muted-foreground">متوسط الفصل</span>
-                    <span className="font-mono">{book.wordsPerChapter.toLocaleString()} كلمة</span>
+                    <span className="text-muted-foreground">Avg per Chapter</span>
+                    <span className="font-mono">{book.wordsPerChapter.toLocaleString()} words</span>
                   </div>
                 </CardContent>
               </Card>
 
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-lg">النبرة والأسلوب</CardTitle>
+                  <CardTitle className="text-lg">Tone and Style</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4 text-sm">
                   <div>
-                    <span className="block text-muted-foreground font-semibold">النبرة</span>
+                    <span className="block text-muted-foreground font-semibold">Tone</span>
                     <span>{book.toneStyle}</span>
                   </div>
                   <div>
-                    <span className="block text-muted-foreground font-semibold">وجهة النظر (POV)</span>
+                    <span className="block text-muted-foreground font-semibold">Point of View (POV)</span>
                     <span>{book.pov}</span>
                   </div>
                   <div>
-                    <span className="block text-muted-foreground font-semibold">الجمهور</span>
+                    <span className="block text-muted-foreground font-semibold">Audience</span>
                     <span>{book.targetAudience}</span>
                   </div>
                 </CardContent>
@@ -307,16 +307,16 @@ export default function BookDetail() {
 
         <TabsContent value="chapters" className="space-y-6">
           <div className="flex justify-between items-center">
-            <h2 className="text-2xl font-serif font-bold">قائمة الفصول</h2>
+            <h2 className="text-2xl font-serif font-bold">Chapter List</h2>
             <Button onClick={handleCreateChapter} className="gap-2">
-              <FileText className="h-4 w-4" /> إضافة فصل
+              <FileText className="h-4 w-4" /> Add Chapter
             </Button>
           </div>
 
           <div className="grid gap-4">
             {chapters?.length === 0 ? (
                <div className="text-center py-12 border-2 border-dashed rounded-lg">
-                 <p className="text-muted-foreground">لا توجد فصول بعد. قم بتوليد مخطط أو أضف فصلاً يدويًا.</p>
+                 <p className="text-muted-foreground">No chapters yet. Generate an outline or add a chapter manually.</p>
                </div>
             ) : (
               chapters?.sort((a,b) => a.order - b.order).map((chapter) => (
@@ -337,14 +337,14 @@ export default function BookDetail() {
                       <div className="flex-grow min-w-0">
                         <div className="flex items-center gap-3 mb-1">
                           <h3 className="font-serif font-bold text-lg truncate">{chapter.title}</h3>
-                          {chapter.isCompleted && <Badge variant="default" className="bg-green-600">منتهي</Badge>}
+                          {chapter.isCompleted && <Badge variant="default" className="bg-green-600">Completed</Badge>}
                         </div>
                         <p className="text-sm text-muted-foreground line-clamp-1">
-                          {chapter.summary || "لا يوجد ملخص متاح."}
+                          {chapter.summary || "No summary available."}
                         </p>
                       </div>
                       <div className="text-right text-xs text-muted-foreground tabular-nums">
-                        {chapter.wordCount} كلمة
+                        {chapter.wordCount} words
                       </div>
                       <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
                     </CardContent>
@@ -361,10 +361,10 @@ export default function BookDetail() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <ImageIcon className="h-5 w-5 text-primary" />
-                  مولد غلاف كيندل
+                  Kindle Cover Generator
                 </CardTitle>
                 <CardDescription>
-                  توليد غلاف احترافي (2560 × 1600) محسن لمتجر أمازون كيندل.
+                  Generate a professional cover (2560 × 1600) optimized for the Amazon Kindle store.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -375,10 +375,10 @@ export default function BookDetail() {
                     </div>
                     <div className="flex gap-2">
                       <Button variant="outline" className="flex-1" onClick={() => window.open(book.coverImageUrl!, '_blank')}>
-                        <ImageIcon className="h-4 w-4 mr-2" /> عرض الغلاف
+                        <ImageIcon className="h-4 w-4 mr-2" /> View Cover
                       </Button>
                       <Button variant="outline" className="flex-1" onClick={() => downloadImage(book.coverImageUrl!, `${book.title}_cover.png`)}>
-                        <Download className="h-4 w-4 mr-2" /> تحميل
+                        <Download className="h-4 w-4 mr-2" /> Download
                       </Button>
                     </div>
                   </div>
@@ -393,7 +393,7 @@ export default function BookDetail() {
                   className="w-full gap-2"
                 >
                   {generatingCover ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wand2 className="h-4 w-4" />}
-                  {book.coverImageUrl ? "إعادة توليد الغلاف" : "توليد غلاف كيندل"}
+                  {book.coverImageUrl ? "Regenerate Cover" : "Generate Kindle Cover"}
                 </Button>
               </CardContent>
             </Card>
@@ -402,10 +402,10 @@ export default function BookDetail() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Hash className="h-5 w-5 text-primary" />
-                  كلمات SEO لأمازون
+                  Amazon SEO Keywords
                 </CardTitle>
                 <CardDescription>
-                  توليد كلمات مفتاحية ذات تأثير عالٍ لزيادة ظهور كتابك على أمازون.
+                  Generate high-impact keywords to increase your book's visibility on Amazon.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -426,7 +426,7 @@ export default function BookDetail() {
                     </ul>
                   ) : (
                     <p className="text-muted-foreground text-sm text-center pt-10 italic">
-                      لم يتم توليد كلمات مفتاحية بعد.
+                      No keywords generated yet.
                     </p>
                   )}
                 </div>
@@ -437,7 +437,7 @@ export default function BookDetail() {
                   className="w-full gap-2"
                 >
                   {generatingKeywords ? <Loader2 className="h-4 w-4 animate-spin" /> : <Hash className="h-4 w-4" />}
-                  {book.keywords && book.keywords.length > 0 ? "إعادة توليد الكلمات" : "توليد كلمات SEO"}
+                  {book.keywords && book.keywords.length > 0 ? "Regenerate Keywords" : "Generate SEO Keywords"}
                 </Button>
               </CardContent>
             </Card>
@@ -447,11 +447,11 @@ export default function BookDetail() {
         <TabsContent value="settings">
           <Card>
             <CardHeader>
-              <CardTitle>بيانات الكتاب</CardTitle>
-              <CardDescription>تحديث التفاصيل الأساسية لكتابك.</CardDescription>
+              <CardTitle>Book Metadata</CardTitle>
+              <CardDescription>Update the core details of your book.</CardDescription>
             </CardHeader>
             <CardContent>
-              <p className="text-muted-foreground italic">نموذج تحرير البيانات الوصفية سيكون هنا.</p>
+              <p className="text-muted-foreground italic">Metadata editing form will go here.</p>
             </CardContent>
           </Card>
         </TabsContent>

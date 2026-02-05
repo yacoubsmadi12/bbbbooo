@@ -71,7 +71,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
         <div className="mt-auto pt-6 border-t">
           <p className="text-xs text-muted-foreground text-center">
-            &copy; 2024 MuseAI Writers<br />v1.0.0
+            &copy; 2026 MuseAI Writers<br />v1.0.0
           </p>
         </div>
       </aside>
