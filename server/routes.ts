@@ -283,20 +283,24 @@ Style: High quality, artistic book illustration, detailed, atmospheric, suitable
       const book = await storage.getBook(bookId);
       if (!book) return res.status(404).json({ message: "Book not found" });
 
-      const imagePrompt = `High-quality, professional book cover for Amazon Kindle.
+      const imagePrompt = `Professional, cinematic book cover for a high-quality publication.
 Title: "${book.title}"
-Subtitle: "${book.subtitle || ""}"
 Author: "${book.authorName}"
 Genre: ${book.genre}
 Tone: ${book.toneStyle}
 Outline: ${book.outline || "A compelling story"}
-Style: Cinematic, high resolution, detailed, professional typography layout, suitable for Amazon Kindle cover (vertical aspect ratio).`;
+
+Visual Requirements:
+- The background should be a powerful, artistic, and highly detailed illustration that represents the book's themes.
+- THE BOOK TITLE "${book.title}" AND AUTHOR NAME "${book.authorName}" MUST BE PROMINENTLY AND PROFESSIONALLY DISPLAYED WITH ELEGANT TYPOGRAPHY.
+- The composition should be balanced, high-resolution (4K), and look like a best-selling Amazon Kindle cover.
+- Style: Atmospheric, professional graphic design, vivid colors, depth, and cinematic lighting.`;
 
       const response = await openai.images.generate({
         model: "gpt-image-1",
         prompt: imagePrompt,
         n: 1,
-        size: "1024x1024", // DALL-E 3 default, we'll suggest resizing or just provide high quality
+        size: "1024x1024", 
       });
 
       const imageUrl = `data:image/png;base64,${response.data[0].b64_json}`;
