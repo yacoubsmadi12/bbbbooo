@@ -337,6 +337,51 @@ Return a JSON object with a single key "keywords" which is an array of 7 string 
     }
   });
 
+  // Export Book Project as ZIP
+  app.get("/api/books/:id/export-project", async (req, res) => {
+    try {
+      const bookId = Number(req.params.id);
+      const book = await storage.getBook(bookId);
+      if (!book) return res.status(404).json({ message: "Book not found" });
+
+      const chapters = await storage.getChapters(bookId);
+      const archiver = (await import("archiver")).default;
+      const archive = archiver("zip", { zlib: { level: 9 } });
+
+      res.setHeader("Content-Type", "application/zip");
+      res.setHeader("Content-Disposition", `attachment; filename="${book.title.replace(/[^a-zA-Z0-9]/g, "_")}_project.zip"`);
+
+      archive.pipe(res);
+
+      // 1. Add Book Info & Description
+      const bookInfo = `Title: ${book.title}\nSubtitle: ${book.subtitle || ""}\nAuthor: ${book.authorName}\nGenre: ${book.genre}\nDescription: ${book.outline || ""}\n\nConclusion:\n${book.conclusion || ""}\n\nAuthor Bio:\n${book.authorBio || ""}`;
+      archive.append(bookInfo, { name: "book_info.txt" });
+
+      // 2. Add Keywords
+      if (book.keywords && book.keywords.length > 0) {
+        archive.append(book.keywords.join("\n"), { name: "keywords.txt" });
+      }
+
+      // 3. Add Cover Image if exists
+      if (book.coverImageUrl && book.coverImageUrl.startsWith("data:image")) {
+        const base64Data = book.coverImageUrl.split(",")[1];
+        archive.append(Buffer.from(base64Data, "base64"), { name: "cover.png" });
+      }
+
+      // 4. Add Full Book Content as TXT
+      let fullContent = `${book.title}\n${"=".repeat(book.title.length)}\n\n`;
+      chapters.sort((a, b) => a.order - b.order).forEach(chap => {
+        fullContent += `Chapter ${chap.order}: ${chap.title}\n${"-".repeat(chap.title.length + 11)}\n\n${chap.content || ""}\n\n`;
+      });
+      archive.append(fullContent, { name: "book_content.txt" });
+
+      await archive.finalize();
+    } catch (error) {
+      console.error("Export Project Error:", error);
+      res.status(500).json({ message: "Failed to export project" });
+    }
+  });
+
   // PDF Export
   app.get("/api/books/:id/export-pdf", async (req, res) => {
     try {
