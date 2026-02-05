@@ -128,22 +128,26 @@ export async function registerRoutes(
         1. "outline": A summary of the book's plot.
         2. "authorBio": A professional and engaging biography for ${book.authorName}.
         3. "conclusion": A powerful and satisfying concluding section for the book.
-        4. "chapters": An array of objects, each having "title" and "summary" for each chapter.
+        4. "dedication": A heartfelt dedication page in English.
+        5. "copyright": A formal copyright notice in English.
+        6. "chapters": An array of objects, each having "title" and "summary" for each chapter.
       `;
 
       const response = await openai.chat.completions.create({
-        model: "gpt-5.1",
+        model: "gpt-5.2",
         messages: [{ role: "user", content: prompt }],
         response_format: { type: "json_object" },
       });
 
       const result = JSON.parse(response.choices[0].message.content || "{}");
       
-      // Update book with outline, author bio, and conclusion
+      // Update book with outline, author bio, conclusion, dedication and copyright
       await storage.updateBook(bookId, { 
         outline: result.outline,
         authorBio: result.authorBio,
-        conclusion: result.conclusion
+        conclusion: result.conclusion,
+        dedication: result.dedication || `To all the dreamers and storytellers.`,
+        copyright: result.copyright || `© ${new Date().getFullYear()} ${book.authorName}. All rights reserved. No part of this publication may be reproduced or transmitted in any form or by any means without written permission from the author.`
       });
 
       // Create chapters
@@ -212,7 +216,7 @@ export async function registerRoutes(
       // Update chapter
       await storage.updateChapter(chapterId, { 
         content: content,
-        wordCount: content.split(/\s+/).length 
+        wordCount: content.split(/\s+/).filter(w => w.length > 0).length
       });
 
       res.json({ content });
@@ -251,9 +255,10 @@ Style: High quality, artistic book illustration, detailed, atmospheric, suitable
       const imageData = response.data[0];
       const imageUrl = `data:image/png;base64,${imageData.b64_json}`;
 
-      // Update chapter with image URL
-      await storage.updateChapter(chapterId, { imageUrl });
-
+      // Update chapter with image URL if confirmed
+      // We'll keep the storage update in this route, but the frontend will now handle the confirmation step.
+      // Note: In the image generation route below, we'll stop auto-updating the chapter.
+      
       res.json({ imageUrl });
 
     } catch (error) {
@@ -295,6 +300,20 @@ Style: High quality, artistic book illustration, detailed, atmospheric, suitable
       doc.fontSize(14).font('Helvetica').text(`by`, { align: 'center' });
       doc.moveDown(0.3);
       doc.fontSize(16).font('Helvetica-Bold').text(book.authorName, { align: 'center' });
+
+      // Copyright Page
+      doc.addPage();
+      doc.moveDown(20);
+      doc.fontSize(10).font('Helvetica').text(book.copyright || `© ${new Date().getFullYear()} ${book.authorName}. All rights reserved.`, { align: 'center' });
+      doc.moveDown(1);
+      doc.text('This is a work of fiction. Names, characters, places, and incidents either are the product of the author’s imagination or are used fictitiously. Any resemblance to actual persons, living or dead, events, or locales is entirely coincidental.', { align: 'center', width: pageWidth * 0.8, indent: pageWidth * 0.1 });
+
+      // Dedication Page
+      if (book.dedication) {
+        doc.addPage();
+        doc.moveDown(12);
+        doc.fontSize(14).font('Helvetica-Oblique').text(book.dedication, { align: 'center' });
+      }
 
       // Table of Contents - Amazon Kindle style
       doc.addPage();

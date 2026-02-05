@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { Input } from "@/components/ui/input";
 import { Wand2, Save, FileText, ChevronRight, Loader2, ArrowLeft, Download } from "lucide-react";
 import { type Chapter } from "@shared/schema";
 import { format } from "date-fns";
@@ -53,7 +54,7 @@ export default function BookDetail() {
       <Layout>
         <div className="text-center py-20">
           <h2 className="text-2xl font-bold">Book not found</h2>
-          <Button variant="link" onClick={() => setLocation("/")} className="mt-4">
+          <Button variant="ghost" size="sm" onClick={() => setLocation("/")} className="mt-4">
             <ArrowLeft className="h-4 w-4 mr-2" /> Back to Dashboard
           </Button>
         </div>
@@ -191,8 +192,24 @@ export default function BookDetail() {
                     <span className="font-mono">{book.minWordCount.toLocaleString()} words</span>
                   </div>
                   <div className="flex justify-between items-center py-2 border-b">
-                    <span className="text-muted-foreground">Chapters</span>
-                    <span className="font-mono">{chapters?.length} / {book.targetChapters}</span>
+                    <span className="text-muted-foreground">Target Chapters</span>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="number"
+                        className="w-20 h-8 font-mono text-right"
+                        defaultValue={book.targetChapters}
+                        onBlur={(e: React.FocusEvent<HTMLInputElement>) => {
+                          const val = parseInt(e.target.value);
+                          if (val > 0 && val !== book.targetChapters) {
+                            updateBook.mutate({ id: bookId, targetChapters: val });
+                          }
+                        }}
+                      />
+                    </div>
+                  </div>
+                  <div className="flex justify-between items-center py-2 border-b">
+                    <span className="text-muted-foreground">Current Chapters</span>
+                    <span className="font-mono">{chapters?.length}</span>
                   </div>
                   <div className="flex justify-between items-center py-2 border-b">
                     <span className="text-muted-foreground">Avg. Chapter</span>

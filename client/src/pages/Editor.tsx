@@ -138,15 +138,35 @@ export default function Editor() {
     }
   };
 
+  const [pendingImageUrl, setPendingImageUrl] = useState<string | null>(null);
+  const [imageDialogOpen, setImageDialogOpen] = useState(false);
+
   const handleGenerateImage = () => {
     generateChapterImage.mutate({ chapterId }, {
-      onSuccess: () => {
-        toast({ title: "Image Generated", description: "A beautiful illustration has been created for this chapter!" });
+      onSuccess: (data) => {
+        setPendingImageUrl(data.imageUrl);
+        setImageDialogOpen(true);
       },
       onError: () => {
         toast({ title: "Error", description: "Failed to generate image.", variant: "destructive" });
       }
     });
+  };
+
+  const handleConfirmImage = async () => {
+    if (!pendingImageUrl) return;
+    try {
+      await updateChapter.mutateAsync({
+        id: chapterId,
+        bookId,
+        imageUrl: pendingImageUrl,
+      });
+      setImageDialogOpen(false);
+      setPendingImageUrl(null);
+      toast({ title: "Image Saved", description: "The chapter illustration has been confirmed." });
+    } catch (error) {
+      toast({ title: "Error", description: "Failed to save image.", variant: "destructive" });
+    }
   };
 
   if (isLoading) {
@@ -261,6 +281,30 @@ export default function Editor() {
             {generateChapterImage.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImageIcon className="h-4 w-4" />}
             <span className="hidden sm:inline">Generate Image</span>
           </Button>
+
+          <Dialog open={imageDialogOpen} onOpenChange={setImageDialogOpen}>
+            <DialogContent className="sm:max-w-[600px]">
+              <DialogHeader>
+                <DialogTitle>Confirm Chapter Illustration</DialogTitle>
+                <DialogDescription>Review the AI-generated image. If you like it, click confirm to save it to this chapter.</DialogDescription>
+              </DialogHeader>
+              {pendingImageUrl && (
+                <div className="rounded-lg overflow-hidden border aspect-square">
+                  <img 
+                    src={pendingImageUrl} 
+                    alt="Generated illustration" 
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              )}
+              <DialogFooter className="gap-2">
+                <Button variant="outline" onClick={() => setImageDialogOpen(false)}>Discard</Button>
+                <Button onClick={handleConfirmImage} className="gap-2">
+                  <CheckCircle className="h-4 w-4" /> Confirm & Save
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
 
           <Sheet>
             <SheetTrigger asChild>

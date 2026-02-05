@@ -23,6 +23,8 @@ export const books = pgTable("books", {
   minWordCount: integer("min_word_count").notNull(),
   targetChapters: integer("target_chapters").notNull().default(10),
   wordsPerChapter: integer("words_per_chapter").notNull().default(2000),
+  dedication: text("dedication"),
+  copyright: text("copyright"),
   outline: text("outline"), // General book outline/overview
   authorBio: text("author_bio"),
   conclusion: text("conclusion"),
@@ -56,8 +58,6 @@ export const insertBookSchema = createInsertSchema(books).omit({
 export const insertChapterSchema = createInsertSchema(chapters).omit({
   id: true,
   createdAt: true,
-  wordCount: true,
-  isCompleted: true
 });
 
 // Types
