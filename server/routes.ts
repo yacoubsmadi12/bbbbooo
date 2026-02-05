@@ -11,6 +11,16 @@ const openai = new OpenAI({
   baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
 });
 
+// For Amazon SEO keywords generation
+const GenerateKeywordsSchema = z.object({
+  bookId: z.number(),
+});
+
+// For Cover generation
+const GenerateCoverSchema = z.object({
+  bookId: z.number(),
+});
+
 // The global body parser in index.ts already handles the limits
 export async function registerRoutes(
   httpServer: Server,
@@ -263,6 +273,67 @@ Style: High quality, artistic book illustration, detailed, atmospheric, suitable
     } catch (error) {
       console.error("AI Image Error:", error);
       res.status(500).json({ message: "Failed to generate chapter image" });
+    }
+  });
+
+  // Generate Book Cover for Amazon Kindle (2560 x 1600)
+  app.post("/api/ai/generate-cover", async (req, res) => {
+    try {
+      const { bookId } = GenerateCoverSchema.parse(req.body);
+      const book = await storage.getBook(bookId);
+      if (!book) return res.status(404).json({ message: "Book not found" });
+
+      const imagePrompt = `High-quality, professional book cover for Amazon Kindle.
+Title: "${book.title}"
+Subtitle: "${book.subtitle || ""}"
+Author: "${book.authorName}"
+Genre: ${book.genre}
+Tone: ${book.toneStyle}
+Outline: ${book.outline || "A compelling story"}
+Style: Cinematic, high resolution, detailed, professional typography layout, suitable for Amazon Kindle cover (vertical aspect ratio).`;
+
+      const response = await openai.images.generate({
+        model: "gpt-image-1",
+        prompt: imagePrompt,
+        n: 1,
+        size: "1024x1024", // DALL-E 3 default, we'll suggest resizing or just provide high quality
+      });
+
+      const imageUrl = `data:image/png;base64,${response.data[0].b64_json}`;
+      res.json({ imageUrl });
+    } catch (error) {
+      console.error("Cover Generation Error:", error);
+      res.status(500).json({ message: "Failed to generate cover" });
+    }
+  });
+
+  // Generate Amazon SEO Keywords
+  app.post("/api/ai/generate-keywords", async (req, res) => {
+    try {
+      const { bookId } = GenerateKeywordsSchema.parse(req.body);
+      const book = await storage.getBook(bookId);
+      if (!book) return res.status(404).json({ message: "Book not found" });
+
+      const prompt = `Generate 7 highly effective SEO keyword phrases for an Amazon Kindle book with these details:
+Title: ${book.title}
+Genre: ${book.genre}
+Audience: ${book.targetAudience}
+Outline: ${book.outline}
+
+Return a JSON object with a single key "keywords" which is an array of 7 string phrases. Each phrase should be 20-50 characters.`;
+
+      const response = await openai.chat.completions.create({
+        model: "gpt-5.2",
+        messages: [{ role: "user", content: prompt }],
+        response_format: { type: "json_object" },
+      });
+
+      const result = JSON.parse(response.choices[0].message.content || "{}");
+      await storage.updateBook(bookId, { keywords: result.keywords });
+      res.json(result);
+    } catch (error) {
+      console.error("Keywords Generation Error:", error);
+      res.status(500).json({ message: "Failed to generate keywords" });
     }
   });
 

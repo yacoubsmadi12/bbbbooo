@@ -10,7 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
-import { Wand2, Save, FileText, ChevronRight, Loader2, ArrowLeft, Download } from "lucide-react";
+import { Wand2, Save, FileText, ChevronRight, Loader2, ArrowLeft, Download, Image as ImageIcon, Hash } from "lucide-react";
 import { type Chapter } from "@shared/schema";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
@@ -31,6 +31,8 @@ export default function BookDetail() {
 
   const [activeTab, setActiveTab] = useState("outline");
   const [localOutline, setLocalOutline] = useState("");
+  const [generatingCover, setGeneratingCover] = useState(false);
+  const [generatingKeywords, setGeneratingKeywords] = useState(false);
 
   if (bookLoading || chaptersLoading) {
     return (
@@ -80,6 +82,42 @@ export default function BookDetail() {
     toast({ title: "Saved", description: "Changes saved successfully." });
   };
 
+  const handleGenerateCover = async () => {
+    setGeneratingCover(true);
+    try {
+      const response = await fetch("/api/ai/generate-cover", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ bookId }),
+      });
+      if (!response.ok) throw new Error("Failed to generate cover");
+      const data = await response.json();
+      await updateBook.mutateAsync({ id: bookId, coverImageUrl: data.imageUrl });
+      toast({ title: "Cover Generated", description: "Your Amazon Kindle cover is ready!" });
+    } catch (err) {
+      toast({ title: "Error", description: "Failed to generate book cover.", variant: "destructive" });
+    } finally {
+      setGeneratingCover(false);
+    }
+  };
+
+  const handleGenerateKeywords = async () => {
+    setGeneratingKeywords(true);
+    try {
+      const response = await fetch("/api/ai/generate-keywords", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ bookId }),
+      });
+      if (!response.ok) throw new Error("Failed to generate keywords");
+      toast({ title: "Keywords Generated", description: "SEO keywords for Amazon have been created!" });
+    } catch (err) {
+      toast({ title: "Error", description: "Failed to generate SEO keywords.", variant: "destructive" });
+    } finally {
+      setGeneratingKeywords(false);
+    }
+  };
+
   const handleCreateChapter = () => {
     createChapter.mutate({
       bookId,
@@ -127,9 +165,10 @@ export default function BookDetail() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3 max-w-md">
+        <TabsList className="grid w-full grid-cols-4 max-w-xl">
           <TabsTrigger value="outline">Outline & Plot</TabsTrigger>
           <TabsTrigger value="chapters">Chapters</TabsTrigger>
+          <TabsTrigger value="publishing">Amazon Publishing</TabsTrigger>
           <TabsTrigger value="settings">Metadata</TabsTrigger>
         </TabsList>
 
@@ -288,6 +327,80 @@ export default function BookDetail() {
                 </motion.div>
               ))
             )}
+          </div>
+        </TabsContent>
+
+        <TabsContent value="publishing" className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <Card className="hover-elevate">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <ImageIcon className="h-5 w-5 text-primary" />
+                  Kindle Cover Generator
+                </CardTitle>
+                <CardDescription>
+                  Generate a professional cover (2560 x 1600) optimized for Amazon Kindle.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {book.coverImageUrl ? (
+                  <div className="aspect-[1600/2560] w-full max-w-[200px] mx-auto rounded-lg overflow-hidden border shadow-lg">
+                    <img src={book.coverImageUrl} alt="Book Cover" className="w-full h-full object-cover" />
+                  </div>
+                ) : (
+                  <div className="aspect-[1600/2560] w-full max-w-[200px] mx-auto rounded-lg bg-muted flex items-center justify-center border-2 border-dashed">
+                    <ImageIcon className="h-10 w-10 text-muted-foreground" />
+                  </div>
+                )}
+                <Button 
+                  onClick={handleGenerateCover} 
+                  disabled={generatingCover}
+                  className="w-full gap-2"
+                >
+                  {generatingCover ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wand2 className="h-4 w-4" />}
+                  {book.coverImageUrl ? "Regenerate Cover" : "Generate Kindle Cover"}
+                </Button>
+              </CardContent>
+            </Card>
+
+            <Card className="hover-elevate">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Hash className="h-5 w-5 text-primary" />
+                  Amazon SEO Keywords
+                </CardTitle>
+                <CardDescription>
+                  Generate high-impact keywords to increase your book's visibility on Amazon.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="min-h-[200px] p-4 rounded-lg bg-muted/30 border">
+                  {book.keywords && book.keywords.length > 0 ? (
+                    <ul className="space-y-2">
+                      {book.keywords.map((kw, i) => (
+                        <li key={i} className="flex items-center gap-2 text-sm">
+                          <Badge variant="outline" className="font-mono">#{i+1}</Badge>
+                          {kw}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="text-muted-foreground text-sm text-center pt-10 italic">
+                      No keywords generated yet.
+                    </p>
+                  )}
+                </div>
+                <Button 
+                  onClick={handleGenerateKeywords} 
+                  disabled={generatingKeywords}
+                  variant="secondary"
+                  className="w-full gap-2"
+                >
+                  {generatingKeywords ? <Loader2 className="h-4 w-4 animate-spin" /> : <Hash className="h-4 w-4" />}
+                  {book.keywords && book.keywords.length > 0 ? "Regenerate Keywords" : "Generate SEO Keywords"}
+                </Button>
+              </CardContent>
+            </Card>
           </div>
         </TabsContent>
 

@@ -28,6 +28,8 @@ export const books = pgTable("books", {
   outline: text("outline"), // General book outline/overview
   authorBio: text("author_bio"),
   conclusion: text("conclusion"),
+  keywords: text("keywords").array(), // For Amazon SEO
+  coverImageUrl: text("cover_image_url"), // For Kindle cover
   createdAt: timestamp("created_at").defaultNow(),
 });
 
