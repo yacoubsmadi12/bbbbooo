@@ -131,7 +131,7 @@ export async function registerRoutes(
         Title: ${book.title}
         Subtitle: ${book.subtitle}
         Author: ${book.authorName}
-        Genre: ${book.genre}
+        Category: ${book.category}
         Target Audience: ${book.targetAudience}
         Tone: ${book.toneStyle}
         POV: ${book.pov}
@@ -201,7 +201,7 @@ export async function registerRoutes(
         Write Chapter ${chapter.order}: "${chapter.title}" for the book "${book.title}".
         
         Book Context:
-        Genre: ${book.genre}
+        Category: ${book.category}
         Tone: ${book.toneStyle}
         POV: ${book.pov}
         Target Audience: ${book.targetAudience}
@@ -248,7 +248,7 @@ export async function registerRoutes(
 
       // Create a prompt for image generation based on chapter content
       const imagePrompt = `Create a beautiful, artistic illustration for a book chapter.
-Book: "${book.title}" (${book.genre})
+Book: "${book.title}" (${book.category})
 Chapter: "${chapter.title}"
 Chapter Summary: ${chapter.summary || "A compelling scene from the story"}
 Style: High quality, artistic book illustration, detailed, atmospheric, suitable for ${book.targetAudience} readers.`;
@@ -261,8 +261,11 @@ Style: High quality, artistic book illustration, detailed, atmospheric, suitable
       });
 
       // Get the base64 image data
-      const imageData = response.data[0];
-      const imageUrl = `data:image/png;base64,${imageData.b64_json}`;
+      const data = response.data?.[0];
+      if (!data?.b64_json) {
+        throw new Error("No image data returned from OpenAI");
+      }
+      const imageUrl = `data:image/png;base64,${data.b64_json}`;
 
       // Update chapter with image URL if confirmed
       // We'll keep the storage update in this route, but the frontend will now handle the confirmation step.
@@ -286,7 +289,7 @@ Style: High quality, artistic book illustration, detailed, atmospheric, suitable
       const imagePrompt = `Professional, cinematic book cover for a high-quality publication.
 Title: "${book.title}"
 Author: "${book.authorName}"
-Genre: ${book.genre}
+Category: ${book.category}
 Tone: ${book.toneStyle}
 Outline: ${book.outline || "A compelling story"}
 
@@ -303,7 +306,11 @@ Visual Requirements:
         size: "1024x1024", 
       });
 
-      const imageUrl = `data:image/png;base64,${response.data[0].b64_json}`;
+      const data = response.data?.[0];
+      if (!data?.b64_json) {
+        throw new Error("No image data returned from OpenAI");
+      }
+      const imageUrl = `data:image/png;base64,${data.b64_json}`;
       res.json({ imageUrl });
     } catch (error) {
       console.error("Cover Generation Error:", error);
@@ -320,7 +327,7 @@ Visual Requirements:
 
       const prompt = `Generate 7 highly effective SEO keyword phrases for an Amazon Kindle book with these details:
 Title: ${book.title}
-Genre: ${book.genre}
+Category: ${book.category}
 Audience: ${book.targetAudience}
 Outline: ${book.outline}
 
@@ -358,7 +365,7 @@ Return a JSON object with a single key "keywords" which is an array of 7 string 
       archive.pipe(res);
 
       // 1. Add Book Info & Description
-      const bookInfo = `Title: ${book.title}\nSubtitle: ${book.subtitle || ""}\nAuthor: ${book.authorName}\nGenre: ${book.genre}\nDescription: ${book.outline || ""}\n\nConclusion:\n${book.conclusion || ""}\n\nAuthor Bio:\n${book.authorBio || ""}`;
+      const bookInfo = `Title: ${book.title}\nSubtitle: ${book.subtitle || ""}\nAuthor: ${book.authorName}\nCategory: ${book.category}\nDescription: ${book.outline || ""}\n\nConclusion:\n${book.conclusion || ""}\n\nAuthor Bio:\n${book.authorBio || ""}`;
       archive.append(bookInfo, { name: "book_info.txt" });
 
       // 2. Add Keywords

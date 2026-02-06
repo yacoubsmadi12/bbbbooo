@@ -89,7 +89,7 @@ export default function Dashboard() {
                         </CardDescription>
                       </div>
                       <div className="bg-secondary px-2 py-1 rounded text-xs font-medium text-secondary-foreground">
-                        {book.genre}
+                        {book.category}
                       </div>
                     </div>
                   </CardHeader>

@@ -25,6 +25,30 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Loader2, Plus } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+const CATEGORIES = [
+  "Arts & Photography", "Biographies & Memoirs", "Business & Money", "Children's Books",
+  "Christian Books & Bibles", "Cookbooks, Food & Wine", "Crafts, Hobbies & Home",
+  "Education & Teaching", "Engineering & Transportation", "Health, Fitness & Dieting",
+  "History", "Humor & Entertainment", "Literature & Fiction", "Medical Books",
+  "Mystery, Thriller & Suspense", "Parenting & Relationships", "Politics & Social Sciences",
+  "Reference", "Religion & Spirituality", "Romance", "Science & Math",
+  "Science Fiction & Fantasy", "Self-Help", "Sports & Outdoors", "Teen & Young Adult",
+  "Test Preparation", "Travel"
+];
+
+const AUDIENCES = ["Children", "Middle Grade", "Young Adult", "Adult", "Professional", "Academic"];
+
+const TONES = ["Engaging", "Mysterious", "Humorous", "Academic", "Suspenseful", "Atmospheric", "Inspirational", "Dark", "Lighthearted", "Formal"];
+
+const POVS = ["First Person", "Second Person", "Third Person Limited", "Third Person Omniscient"];
 
 export function CreateBookDialog() {
   const [open, setOpen] = useState(false);
@@ -35,11 +59,11 @@ export function CreateBookDialog() {
     defaultValues: {
       title: "",
       authorName: "",
-      genre: "Novel",
+      category: "Literature & Fiction",
       language: "English",
-      targetAudience: "Adults",
+      targetAudience: "Adult",
       toneStyle: "Engaging",
-      pov: "Third Person",
+      pov: "Third Person Limited",
       minWordCount: 50000,
       targetChapters: 10,
       wordsPerChapter: 2500,
@@ -103,13 +127,22 @@ export function CreateBookDialog() {
 
               <FormField
                 control={form.control}
-                name="genre"
+                name="category"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="flex justify-start">Genre</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Sci-Fi, Thriller, Romance..." {...field} />
-                    </FormControl>
+                    <FormLabel className="flex justify-start">Category</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select category" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {CATEGORIES.map((cat) => (
+                          <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -121,9 +154,18 @@ export function CreateBookDialog() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel className="flex justify-start">Target Audience</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Young Adults, Professionals..." {...field} />
-                    </FormControl>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select audience" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {AUDIENCES.map((aud) => (
+                          <SelectItem key={aud} value={aud}>{aud}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -135,9 +177,18 @@ export function CreateBookDialog() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel className="flex justify-start">Tone and Style</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Mysterious, Humorous, Academic..." {...field} />
-                    </FormControl>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select tone" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {TONES.map((tone) => (
+                          <SelectItem key={tone} value={tone}>{tone}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -149,9 +200,18 @@ export function CreateBookDialog() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel className="flex justify-start">Point of View</FormLabel>
-                    <FormControl>
-                      <Input placeholder="First Person, Third Person..." {...field} />
-                    </FormControl>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select POV" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {POVS.map((pov) => (
+                          <SelectItem key={pov} value={pov}>{pov}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}

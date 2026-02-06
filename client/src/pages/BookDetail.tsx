@@ -164,7 +164,7 @@ export default function BookDetail() {
             <div className="flex items-center gap-4 text-muted-foreground">
               <span>{book.authorName}</span>
               <span>•</span>
-              <Badge variant="secondary">{book.genre}</Badge>
+              <Badge variant="secondary">{book.category}</Badge>
               <span>•</span>
               <span>{book.language}</span>
             </div>

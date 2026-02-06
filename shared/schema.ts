@@ -16,7 +16,7 @@ export const books = pgTable("books", {
   subtitle: text("subtitle"),
   authorName: text("author_name").notNull(),
   language: text("language").notNull().default("English"),
-  genre: text("genre").notNull(),
+  category: text("category").notNull(),
   targetAudience: text("target_audience").notNull(),
   toneStyle: text("tone_style").notNull(),
   pov: text("pov").notNull(),
