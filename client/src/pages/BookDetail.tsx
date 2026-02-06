@@ -451,7 +451,24 @@ export default function BookDetail() {
               <CardDescription>Update the core details of your book.</CardDescription>
             </CardHeader>
             <CardContent>
-              <p className="text-muted-foreground italic">Metadata editing form will go here.</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Category</label>
+                  <Input value={book.category} disabled />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Target Audience</label>
+                  <Input value={book.targetAudience} disabled />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Tone and Style</label>
+                  <Input value={book.toneStyle} disabled />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Point of View</label>
+                  <Input value={book.pov} disabled />
+                </div>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
