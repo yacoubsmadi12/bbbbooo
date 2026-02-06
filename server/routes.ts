@@ -625,7 +625,7 @@ Return a JSON object with a single key "keywords" which is an array of 7 string 
         subtitle: "A Mystery in the Mountains",
         authorName: "Eleanor Vance",
         language: "English",
-        genre: "Mystery",
+        category: "Mystery, Thriller & Suspense",
         targetAudience: "Adult",
         toneStyle: "Suspenseful, Atmospheric",
         pov: "Third Person Limited",
