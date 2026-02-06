@@ -9,6 +9,7 @@ import NotFound from "@/pages/not-found";
 import Dashboard from "@/pages/Dashboard";
 import BookDetail from "@/pages/BookDetail";
 import Editor from "@/pages/Editor";
+import Settings from "@/pages/Settings";
 
 function Router() {
   return (
@@ -16,6 +17,7 @@ function Router() {
       <Route path="/" component={Dashboard} />
       <Route path="/book/:id" component={BookDetail} />
       <Route path="/book/:bookId/chapter/:chapterId" component={Editor} />
+      <Route path="/settings" component={Settings} />
       <Route component={NotFound} />
     </Switch>
   );
