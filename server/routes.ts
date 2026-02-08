@@ -441,152 +441,70 @@ Return a JSON object with a single key "keywords" which is an array of 7 string 
         doc.fontSize(14).font('Helvetica-Oblique').text(book.dedication, { align: 'center' });
       }
 
-      // Table of Contents - Amazon Kindle style
+      // Table of Contents - Professional KDP style
       doc.addPage();
       doc.moveDown(1);
-      doc.fontSize(28).font('Helvetica-Bold').text('Contents', { align: 'center' });
-      doc.moveDown(0.5);
-      doc.moveTo(doc.page.margins.left + pageWidth * 0.3, doc.y)
-         .lineTo(doc.page.margins.left + pageWidth * 0.7, doc.y)
-         .strokeColor('#cccccc')
-         .lineWidth(1)
-         .stroke();
-      doc.moveDown(2);
+      doc.fontSize(24).font('Helvetica-Bold').text('Contents', { align: 'center' });
+      doc.moveDown(1);
 
       const sortedChapters = chapters.sort((a, b) => a.order - b.order);
       
-      // Calculate page numbers (TOC is page 2, chapters start at page 3)
-      let currentPage = 3;
-      const chapterPages: number[] = [];
-      
-      sortedChapters.forEach(() => {
-        chapterPages.push(currentPage);
-        currentPage += 1; // Each chapter gets at least one page
-      });
-
-      // Draw TOC entries with dotted leaders
-      sortedChapters.forEach((chapter, index) => {
-        const startX = doc.page.margins.left;
-        const endX = doc.page.margins.left + pageWidth;
+      // Draw TOC entries with professional layout
+      sortedChapters.forEach((chapter) => {
+        const startX = doc.page.margins.left + 40;
+        const endX = doc.page.width - doc.page.margins.right - 40;
         const y = doc.y;
         
-        // Chapter number and title
-        const chapterText = `${chapter.order}. ${chapter.title}`;
-        const pageNum = chapterPages[index].toString();
+        doc.fontSize(12).font('Helvetica').fillColor('#333333');
+        doc.text(`Chapter ${chapter.order}: ${chapter.title}`, startX, y);
         
-        // Measure text widths
-        doc.fontSize(12).font('Helvetica');
-        const titleWidth = doc.widthOfString(chapterText);
-        const pageNumWidth = doc.widthOfString(pageNum);
-        
-        // Draw chapter title
-        doc.text(chapterText, startX, y, { continued: false });
-        
-        // Draw dotted leader
-        const dotsStartX = startX + titleWidth + 10;
-        const dotsEndX = endX - pageNumWidth - 10;
-        let dotX = dotsStartX;
-        doc.fontSize(10).fillColor('#888888');
-        while (dotX < dotsEndX) {
-          doc.text('.', dotX, y, { continued: false, lineBreak: false });
-          dotX += 6;
-        }
-        
-        // Draw page number (right-aligned)
-        doc.fontSize(12).font('Helvetica').fillColor('#000000');
-        doc.text(pageNum, endX - pageNumWidth, y, { continued: false, lineBreak: false });
-        
-        doc.y = y + 24;
+        doc.moveDown(0.5);
       });
 
       // Chapters with images
       for (const chapter of sortedChapters) {
-        // Chapter title page with image (full page illustration)
         doc.addPage();
         
-        // Chapter image as full-page illustration (if available)
+        // Chapter indicator
+        doc.moveDown(2);
+        doc.fontSize(10).font('Helvetica').fillColor('#888888').text(`CHAPTER ${chapter.order}`, { align: 'center' });
+        doc.moveDown(0.5);
+        doc.fontSize(24).font('Helvetica-Bold').fillColor('#000000').text(chapter.title, { align: 'center' });
+        doc.moveDown(2);
+
+        // Chapter image
         if (chapter.imageUrl && chapter.imageUrl.startsWith('data:image')) {
           try {
             const base64Data = chapter.imageUrl.split(',')[1];
             if (base64Data) {
               const imageBuffer = Buffer.from(base64Data, 'base64');
-              const maxImageWidth = pageWidth;
-              const maxImageHeight = 280;
-              
-              // Center image at top of page
-              doc.image(imageBuffer, doc.page.margins.left, doc.y, { 
-                fit: [maxImageWidth, maxImageHeight],
+              doc.image(imageBuffer, { 
+                fit: [pageWidth, 300],
                 align: 'center'
               });
-              doc.y += maxImageHeight + 30;
+              doc.moveDown(2);
             }
           } catch (imgError) {
             console.error("Error embedding chapter image:", imgError);
-            doc.moveDown(2);
           }
-        } else {
-          doc.moveDown(4);
         }
 
-        // Chapter header below image
-        doc.fontSize(11).font('Helvetica').fillColor('#888888').text(`CHAPTER ${chapter.order}`, { align: 'center' });
-        doc.moveDown(0.4);
-        doc.fontSize(22).font('Helvetica-Bold').fillColor('#000000').text(chapter.title, { align: 'center' });
-        doc.moveDown(0.4);
-        
-        // Decorative line
-        const lineY = doc.y;
-        doc.moveTo(doc.page.margins.left + pageWidth * 0.35, lineY)
-           .lineTo(doc.page.margins.left + pageWidth * 0.65, lineY)
-           .strokeColor('#dddddd')
-           .lineWidth(1)
-           .stroke();
-        
-        // Chapter summary if available
-        if (chapter.summary) {
-          doc.moveDown(1.5);
-          doc.fontSize(10).font('Helvetica-Oblique').fillColor('#666666').text(chapter.summary, { 
-            align: 'center',
-            width: pageWidth * 0.8,
-            indent: pageWidth * 0.1
-          });
-        }
-
-        // Content page (new page for the actual text)
-        doc.addPage();
-        
-        // Small chapter indicator at top
-        doc.fontSize(9).font('Helvetica').fillColor('#aaaaaa').text(`Chapter ${chapter.order}`, { align: 'center' });
-        doc.moveDown(1.5);
-
-        // Chapter content with professional typography
+        // Chapter content with professional formatting (KDP compatible)
         if (chapter.content) {
-          // Split content into paragraphs for better formatting
           const paragraphs = chapter.content.split(/\n\n+/);
+          doc.fontSize(11).font('Helvetica').fillColor('#000000');
           
-          paragraphs.forEach((paragraph, idx) => {
+          paragraphs.forEach((paragraph) => {
             const trimmed = paragraph.trim();
             if (trimmed) {
-              // First paragraph gets drop cap style (larger first letter effect via indent)
-              if (idx === 0) {
-                doc.fontSize(11).font('Helvetica').fillColor('#000000').text(trimmed, {
-                  align: 'justify',
-                  lineGap: 6,
-                  indent: 20
-                });
-              } else {
-                doc.fontSize(11).font('Helvetica').fillColor('#000000').text(trimmed, {
-                  align: 'justify',
-                  lineGap: 6,
-                  indent: 20
-                });
-              }
-              doc.moveDown(0.8);
+              doc.text(trimmed, {
+                align: 'justify',
+                lineGap: 4,
+                paragraphGap: 10,
+                indent: 20
+              });
             }
           });
-        } else {
-          doc.moveDown(4);
-          doc.fontSize(11).font('Helvetica-Oblique').fillColor('#999999').text('Content coming soon...', { align: 'center' });
         }
       }
 
