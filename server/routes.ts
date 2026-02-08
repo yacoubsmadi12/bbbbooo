@@ -247,11 +247,11 @@ export async function registerRoutes(
       if (!book) return res.status(404).json({ message: "Book not found" });
 
       // Create a prompt for image generation based on chapter content
-      const imagePrompt = `Create a beautiful, artistic illustration for a book chapter.
-Book: "${book.title}" (${book.category})
-Chapter: "${chapter.title}"
-Chapter Summary: ${chapter.summary || "A compelling scene from the story"}
-Style: High quality, artistic book illustration, detailed, atmospheric, suitable for ${book.targetAudience} readers.`;
+      const imagePrompt = `Professional book illustration for a chapter titled "${chapter.title}" in a ${book.category} book. 
+      Style: Modern, cinematic, highly detailed, artistic, and contemporary. 
+      Atmospheric lighting, professional digital art, high resolution. 
+      IMPORTANT: No text, letters, symbols, or words should appear in the image. 
+      The image should artistically represent the theme of "${chapter.summary || chapter.title}" through pure visual imagery without any typography or labels.`;
 
       const response = await openai.images.generate({
         model: "gpt-image-1",
