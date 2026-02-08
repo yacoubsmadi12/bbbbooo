@@ -31,6 +31,7 @@ export default function BookDetail() {
 
   const [activeTab, setActiveTab] = useState("outline");
   const [localOutline, setLocalOutline] = useState("");
+  const [localAuthorName, setLocalAuthorName] = useState("");
   const [generatingCover, setGeneratingCover] = useState(false);
   const [generatingKeywords, setGeneratingKeywords] = useState(false);
 
@@ -452,6 +453,22 @@ export default function BookDetail() {
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Author Name</label>
+                  <div className="flex gap-2">
+                    <Input 
+                      defaultValue={book.authorName} 
+                      onChange={(e) => setLocalAuthorName(e.target.value)}
+                    />
+                    <Button 
+                      size="sm"
+                      variant="outline"
+                      onClick={() => updateBook.mutate({ id: bookId, authorName: localAuthorName || book.authorName })}
+                    >
+                      <Save className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Category</label>
                   <Input value={book.category} disabled />
