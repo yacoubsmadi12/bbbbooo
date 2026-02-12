@@ -5,11 +5,26 @@ import { api } from "@shared/routes";
 import { z } from "zod";
 import OpenAI from "openai";
 import PDFDocument from "pdfkit";
+import fs from "fs/promises";
+import path from "path";
 
 const openai = new OpenAI({
   apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
   baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
 });
+
+// Helper for story state
+const BIBLE_PATH = path.join(process.cwd(), "series_bible.json");
+async function updateStoryState(update: any) {
+  try {
+    const data = await fs.readFile(BIBLE_PATH, "utf-8");
+    const bible = JSON.parse(data);
+    bible.storyState = { ...bible.storyState, ...update };
+    await fs.writeFile(BIBLE_PATH, JSON.stringify(bible, null, 2));
+  } catch (e) {
+    console.error("Error updating bible:", e);
+  }
+}
 
 // For Amazon SEO keywords generation
 const GenerateKeywordsSchema = z.object({
@@ -26,6 +41,107 @@ export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
+  // ... existing routes ...
+
+  // Custom Architect Logic for Book 2
+  app.post("/api/books/2/architect", async (req, res) => {
+    try {
+      const bookId = 2;
+      const book = await storage.getBook(bookId);
+      if (!book) return res.status(404).json({ message: "Book 2 not found" });
+
+      const prompt = `
+        **Role:** Dark Romance Narrative Architect.
+        **Objective:** Generate a 15-chapter outline for "Shadow of Obsession".
+        
+        Style: Dark Romance, High Tension, Suspenseful.
+        
+        For each of the 15 chapters, provide:
+        - title: Dark, provocative title.
+        - goal: Dramatic goal.
+        - beats: 3 key scene beats.
+        
+        Return JSON format.
+      `;
+
+      const response = await openai.chat.completions.create({
+        model: "gpt-5.2",
+        messages: [{ role: "user", content: prompt }],
+        response_format: { type: "json_object" },
+      });
+
+      const result = JSON.parse(response.choices[0].message.content || "{}");
+      
+      // Delete existing chapters for book 2 to avoid duplicates during re-architecting
+      const existing = await storage.getChapters(bookId);
+      for (const c of existing) await storage.deleteChapter(c.id);
+
+      const created = [];
+      let order = 1;
+      for (const chap of result.chapters) {
+        const c = await storage.createChapter({
+          bookId,
+          title: chap.title,
+          summary: chap.goal,
+          beatSheet: chap.beats.join("\n"),
+          content: "",
+          order: order++,
+          isCompleted: false
+        });
+        created.push(c);
+      }
+
+      res.json(created);
+    } catch (error) {
+      res.status(500).json({ message: "Architecting failed" });
+    }
+  });
+
+  // Chronicler: Chunking Logic (4 stages per chapter)
+  app.post("/api/chapters/:id/draft-chunk", async (req, res) => {
+    try {
+      const chapterId = Number(req.params.id);
+      const { stage } = req.body; // 1, 2, 3, or 4
+      const chapter = await storage.getChapter(chapterId);
+      if (!chapter) return res.status(404).json({ message: "Chapter not found" });
+      
+      const bibleData = JSON.parse(await fs.readFile(BIBLE_PATH, "utf-8"));
+      
+      const prompt = `
+        **Role:** The Chronicler.
+        **Task:** Write Stage ${stage}/4 of Chapter "${chapter.title}".
+        Each stage is ~600 words. Total chapter goal: 2500 words.
+        
+        Current Story State: ${JSON.stringify(bibleData.storyState)}
+        Chapter Context: ${chapter.summary}
+        Beats: ${chapter.beatSheet}
+        
+        Prose: Dark Romance, sensory, intense.
+      `;
+
+      const response = await openai.chat.completions.create({
+        model: "gpt-5.2",
+        messages: [{ role: "user", content: prompt }],
+      });
+
+      const newContent = response.choices[0].message.content || "";
+      const updatedContent = (chapter.content || "") + "\n\n" + newContent;
+      
+      await storage.updateChapter(chapterId, { 
+        content: updatedContent,
+        wordCount: updatedContent.split(/\s+/).length
+      });
+
+      // Update bible state with new summary of events
+      await updateStoryState({
+        lastEvents: [...bibleData.storyState.lastEvents, `Finished stage ${stage} of chapter ${chapter.order}`]
+      });
+
+      res.json({ content: newContent, stage });
+    } catch (error) {
+      res.status(500).json({ message: "Drafting failed" });
+    }
+  });
   // No need to app.use(jsonParser) here if it's already in index.ts
   // but let's keep it consistent if needed, ensuring the limit is high.
 
@@ -76,7 +192,18 @@ export async function registerRoutes(
 
   // Chapters
   app.get(api.chapters.list.path, async (req, res) => {
-    const chapters = await storage.getChapters(Number(req.params.bookId));
+    const bookId = Number(req.params.bookId);
+    const chapters = await storage.getChapters(bookId);
+    
+    // Auto-architect for Book 2 if empty
+    if (bookId === 2 && chapters.length === 0) {
+      // Trigger internal architect logic (simplified here)
+      const book = await storage.getBook(2);
+      if (book) {
+        // We'll return empty for now but tell client to trigger architect
+        return res.json([]);
+      }
+    }
     res.json(chapters);
   });
 
