@@ -50,6 +50,10 @@ const TONES = ["Engaging", "Mysterious", "Humorous", "Academic", "Suspenseful", 
 
 const POVS = ["First Person", "Second Person", "Third Person Limited", "Third Person Omniscient"];
 
+const TRIM_SIZES = ["5 x 8 in", "5.25 x 8 in", "5.5 x 8.5 in", "6 x 9 in", "7 x 10 in", "8.5 x 11 in"];
+const PAPER_TYPES = ["White", "Cream", "Premium Color"];
+const COVER_FINISHES = ["Matte", "Glossy"];
+
 export function CreateBookDialog() {
   const [open, setOpen] = useState(false);
   const createBook = useCreateBook();
@@ -67,6 +71,10 @@ export function CreateBookDialog() {
       minWordCount: 50000,
       targetChapters: 10,
       wordsPerChapter: 2500,
+      trimSize: "6 x 9 in",
+      paperType: "White",
+      isBleed: false,
+      coverFinish: "Matte",
     },
   });
 
@@ -216,6 +224,95 @@ export function CreateBookDialog() {
                   </FormItem>
                 )}
               />
+            </div>
+
+            <div className="bg-muted/50 p-4 rounded-lg space-y-4 border border-border/50">
+              <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wider">Amazon KDP Print Settings</h4>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="trimSize"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Trim Size</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select size" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {TRIM_SIZES.map((size) => (
+                            <SelectItem key={size} value={size}>{size}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="paperType"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Paper Type</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select paper" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {PAPER_TYPES.map((type) => (
+                            <SelectItem key={type} value={type}>{type}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="coverFinish"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Cover Finish</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select finish" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {COVER_FINISHES.map((finish) => (
+                            <SelectItem key={finish} value={finish}>{finish}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="isBleed"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm bg-background">
+                      <div className="space-y-0.5">
+                        <FormLabel>Bleed</FormLabel>
+                        <FormDescription>Includes bleed in formatting</FormDescription>
+                      </div>
+                      <FormControl>
+                        <Input 
+                          type="checkbox" 
+                          className="w-4 h-4" 
+                          checked={field.value} 
+                          onChange={(e) => field.onChange(e.target.checked)} 
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+              </div>
             </div>
 
             <div className="bg-muted/50 p-4 rounded-lg space-y-4 border border-border/50">

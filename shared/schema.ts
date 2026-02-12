@@ -29,6 +29,10 @@ export const books = pgTable("books", {
   authorBio: text("author_bio"),
   conclusion: text("conclusion"),
   keywords: text("keywords").array(), // For Amazon SEO
+  trimSize: text("trim_size").notNull().default("6 x 9 in"), // Amazon KDP standard size
+  paperType: text("paper_type").notNull().default("White"), // White, Cream, or Premium Color
+  isBleed: boolean("is_bleed").notNull().default(false), // Bleed vs No Bleed
+  coverFinish: text("cover_finish").notNull().default("Matte"), // Matte or Glossy
   coverImageUrl: text("cover_image_url"), // For Kindle cover
   createdAt: timestamp("created_at").defaultNow(),
 });

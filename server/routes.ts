@@ -127,7 +127,7 @@ export async function registerRoutes(
       if (!book) return res.status(404).json({ message: "Book not found" });
 
       const prompt = `
-        Create a detailed book outline, author biography, and conclusion for a novel with the following details:
+        Create a detailed book outline, author biography, and conclusion for a novel optimized for Amazon KDP publication:
         Title: ${book.title}
         Subtitle: ${book.subtitle}
         Author: ${book.authorName}
@@ -136,6 +136,16 @@ export async function registerRoutes(
         Tone: ${book.toneStyle}
         POV: ${book.pov}
         Total Target Chapters: ${book.targetChapters}
+        Trim Size: ${book.trimSize}
+        Paper Type: ${book.paperType}
+        Cover Finish: ${book.coverFinish}
+
+        AMAZON KDP REQUIREMENTS:
+        - The outline must be a cohesive, high-quality plot summary (500-1000 words).
+        - The author bio must be professional, marketing-oriented, and engaging.
+        - The dedication should be meaningful.
+        - The copyright page must be legally standard and include the ISBN placeholder.
+        - The chapters must follow a logical narrative arc suitable for a best-selling ${book.category} book.
 
         Return a JSON object with:
         1. "outline": A summary of the book's plot.
@@ -200,12 +210,19 @@ export async function registerRoutes(
       const prompt = `
         Write Chapter ${chapter.order}: "${chapter.title}" for the book "${book.title}".
         
+        AMAZON KDP QUALITY STANDARDS:
+        - Ensure high-quality literary prose.
+        - Adhere strictly to the requested tone and POV.
+        - Maintain narrative consistency with the outline.
+        - The length should be substantial and professional.
+
         Book Context:
         Category: ${book.category}
         Tone: ${book.toneStyle}
         POV: ${book.pov}
         Target Audience: ${book.targetAudience}
         Book Outline: ${book.outline}
+        Trim Size: ${book.trimSize}
 
         Chapter Summary: ${chapter.summary}
         
