@@ -78,17 +78,19 @@ export async function registerRoutes(
 
       const created = [];
       let order = 1;
-      for (const chap of result.chapters) {
-        const c = await storage.createChapter({
-          bookId,
-          title: chap.title,
-          summary: chap.goal,
-          beatSheet: chap.beats.join("\n"),
-          content: "",
-          order: order++,
-          isCompleted: false
-        });
-        created.push(c);
+      if (Array.isArray(result.chapters)) {
+        for (const chap of result.chapters) {
+          const c = await storage.createChapter({
+            bookId,
+            title: chap.title,
+            summary: chap.goal,
+            beatSheet: Array.isArray(chap.beats) ? chap.beats.join("\n") : chap.beats,
+            content: "",
+            order: order++,
+            isCompleted: false
+          });
+          created.push(c);
+        }
       }
 
       res.json(created);
@@ -193,15 +195,56 @@ export async function registerRoutes(
   // Chapters
   app.get(api.chapters.list.path, async (req, res) => {
     const bookId = Number(req.params.bookId);
-    const chapters = await storage.getChapters(bookId);
+    let chapters = await storage.getChapters(bookId);
     
     // Auto-architect for Book 2 if empty
     if (bookId === 2 && chapters.length === 0) {
-      // Trigger internal architect logic (simplified here)
       const book = await storage.getBook(2);
       if (book) {
-        // We'll return empty for now but tell client to trigger architect
-        return res.json([]);
+        // Automatically split title if contains ":"
+        if (book.title.includes(":") && !book.subtitle) {
+          const [mainTitle, ...subtitleParts] = book.title.split(":");
+          await storage.updateBook(2, {
+            title: mainTitle.trim(),
+            subtitle: subtitleParts.join(":").trim()
+          });
+        }
+
+        // Logic for generating 15 chapters (The Architect)
+        const architectPrompt = `
+          **Role:** Dark Romance Narrative Architect.
+          **Objective:** Generate a 15-chapter outline for "${book.title}".
+          Style: Dark Romance, High Tension.
+          For each of the 15 chapters, provide:
+          - title: Dark title.
+          - goal: Dramatic goal.
+          - beats: 3 key scene beats.
+          Return JSON format: { "chapters": [...] }
+        `;
+
+        const response = await openai.chat.completions.create({
+          model: "gpt-5.2",
+          messages: [{ role: "user", content: architectPrompt }],
+          response_format: { type: "json_object" },
+        });
+
+        const result = JSON.parse(response.choices[0].message.content || "{}");
+        if (Array.isArray(result.chapters)) {
+          let order = 1;
+          for (const chap of result.chapters) {
+            await storage.createChapter({
+              bookId,
+              title: chap.title,
+              summary: chap.goal,
+              beatSheet: Array.isArray(chap.beats) ? chap.beats.join("\n") : chap.beats,
+              content: "",
+              order: order++,
+              isCompleted: false
+            });
+          }
+          // Refresh chapters list
+          chapters = await storage.getChapters(bookId);
+        }
       }
     }
     res.json(chapters);
