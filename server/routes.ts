@@ -127,7 +127,7 @@ export async function registerRoutes(
       if (!book) return res.status(404).json({ message: "Book not found" });
 
       const prompt = `
-        Create a detailed book outline, author biography, and conclusion for a novel optimized for Amazon KDP publication:
+        Create a highly detailed and comprehensive book outline, author biography, and conclusion for a novel optimized for Amazon KDP publication:
         Title: ${book.title}
         Subtitle: ${book.subtitle}
         Author: ${book.authorName}
@@ -140,24 +140,26 @@ export async function registerRoutes(
         Paper Type: ${book.paperType}
         Cover Finish: ${book.coverFinish}
 
-        AMAZON KDP REQUIREMENTS:
-        - The outline must be a cohesive, high-quality plot summary (500-1000 words).
+        AMAZON KDP REQUIREMENTS & QUALITY STANDARDS:
+        - The outline must be extremely detailed and comprehensive, covering the entire narrative arc from start to finish.
+        - Ensure the book structure supports a length of at least 200+ pages (approx. 50,000 - 80,000 words).
         - The author bio must be professional, marketing-oriented, and engaging.
         - The dedication should be meaningful.
         - The copyright page must be legally standard and include the ISBN placeholder.
         - The chapters must follow a logical narrative arc suitable for a best-selling ${book.category} book.
+        - Each chapter summary must be substantial, providing a clear roadmap for generation.
 
         Return a JSON object with:
-        1. "outline": A summary of the book's plot.
+        1. "outline": A deep, comprehensive summary of the entire plot (approx 1000-1500 words).
         2. "authorBio": A professional and engaging biography for ${book.authorName}.
         3. "conclusion": A powerful and satisfying concluding section for the book.
         4. "dedication": A heartfelt dedication page in English.
         5. "copyright": A formal copyright notice in English.
-        6. "chapters": An array of objects, each having "title" and "summary" for each chapter.
+        6. "chapters": An array of ${book.targetChapters} objects, each having "title" and a VERY detailed "summary" (at least 200 words per summary) for each chapter.
       `;
 
       const response = await openai.chat.completions.create({
-        model: "gpt-4o",
+        model: "gpt-5.2",
         messages: [{ role: "user", content: prompt }],
         response_format: { type: "json_object" },
       });
@@ -233,7 +235,7 @@ export async function registerRoutes(
       `;
 
       const response = await openai.chat.completions.create({
-        model: "gpt-4o",
+        model: "gpt-5.2",
         messages: [{ role: "user", content: prompt }],
       });
 
