@@ -395,7 +395,88 @@ Return a JSON object with a single key "keywords" which is an array of 7 string 
     }
   });
 
-  // Export Book Project as ZIP
+  // KDP Paperback Formatting Export (6x9)
+  app.get("/api/books/:id/export-pdf", async (req, res) => {
+    try {
+      const bookId = Number(req.params.id);
+      const book = await storage.getBook(bookId);
+      if (!book) return res.status(404).json({ message: "Book not found" });
+
+      const chapters = await storage.getChapters(bookId);
+
+      // KDP Paperback Formatting: 6x9 inches (432x648 points)
+      const doc = new PDFDocument({
+        size: [432, 648],
+        margins: { top: 54, bottom: 54, left: 54, right: 36 },
+        bufferPages: true
+      });
+
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="${book.title.replace(/[^a-zA-Z0-9]/g, '_')}_KDP_6x9.pdf"`);
+      doc.pipe(res);
+
+      const pageWidth = doc.page.width - doc.page.margins.left - doc.page.margins.right;
+
+      // Title Page
+      doc.moveDown(4);
+      doc.fontSize(24).font('Helvetica-Bold').text(book.title, { align: 'center' });
+      if (book.subtitle) {
+        doc.moveDown(0.5);
+        doc.fontSize(14).font('Helvetica-Oblique').text(book.subtitle, { align: 'center' });
+      }
+      doc.moveDown(2);
+      doc.fontSize(12).font('Helvetica').text(`by`, { align: 'center' });
+      doc.moveDown(0.2);
+      doc.fontSize(14).font('Helvetica-Bold').text(book.authorName, { align: 'center' });
+
+      // Copyright
+      doc.addPage();
+      doc.moveDown(15);
+      doc.fontSize(9).font('Helvetica').text(book.copyright || `© ${new Date().getFullYear()} ${book.authorName}. All rights reserved.`, { align: 'left' });
+
+      // TOC
+      doc.addPage();
+      doc.fontSize(18).font('Helvetica-Bold').text('Contents', { align: 'center' });
+      doc.moveDown(1);
+      const sortedChapters = chapters.sort((a, b) => a.order - b.order);
+      sortedChapters.forEach((chapter) => {
+        doc.fontSize(10).font('Helvetica').text(`Chapter ${chapter.order}: ${chapter.title}`, { indent: 20 });
+      });
+
+      // Chapters
+      for (const chapter of sortedChapters) {
+        doc.addPage();
+        doc.moveDown(2);
+        doc.fontSize(18).font('Helvetica-Bold').text(`Chapter ${chapter.order}: ${chapter.title}`, { align: 'center' });
+        doc.moveDown(2);
+
+        if (chapter.content) {
+          const paragraphs = chapter.content.split(/\n\n+/);
+          doc.fontSize(11).font('Times-Roman').fillColor('#000000');
+          paragraphs.forEach((paragraph) => {
+            const trimmed = paragraph.trim();
+            if (trimmed) {
+              doc.text(trimmed, { align: 'justify', lineGap: 3, paragraphGap: 8, indent: 18 });
+            }
+          });
+        }
+      }
+
+      if (book.transparencyReport) {
+        doc.addPage();
+        doc.fontSize(14).font('Helvetica-Bold').text('AI Transparency Report', { align: 'center' });
+        doc.moveDown(1);
+        doc.fontSize(10).font('Helvetica').text(book.transparencyReport, { align: 'justify' });
+      }
+
+      doc.end();
+    } catch (error) {
+      console.error("PDF Export Error:", error);
+      res.status(500).json({ message: "Failed to export KDP PDF" });
+    }
+  });
+
+  // Updated KDP Project Export (ZIP)
   app.get("/api/books/:id/export-project", async (req, res) => {
     try {
       const bookId = Number(req.params.id);
@@ -407,176 +488,31 @@ Return a JSON object with a single key "keywords" which is an array of 7 string 
       const archive = archiver("zip", { zlib: { level: 9 } });
 
       res.setHeader("Content-Type", "application/zip");
-      res.setHeader("Content-Disposition", `attachment; filename="${book.title.replace(/[^a-zA-Z0-9]/g, "_")}_project.zip"`);
-
+      res.setHeader("Content-Disposition", `attachment; filename="${book.title.replace(/[^a-zA-Z0-9]/g, "_")}_KDP_Package.zip"`);
       archive.pipe(res);
 
-      // 1. Add Book Info & Description
-      const bookInfo = `Title: ${book.title}\nSubtitle: ${book.subtitle || ""}\nAuthor: ${book.authorName}\nCategory: ${book.category}\nDescription: ${book.outline || ""}\n\nConclusion:\n${book.conclusion || ""}\n\nAuthor Bio:\n${book.authorBio || ""}`;
-      archive.append(bookInfo, { name: "book_info.txt" });
-
-      // 2. Add Keywords
-      if (book.keywords && book.keywords.length > 0) {
-        archive.append(book.keywords.join("\n"), { name: "keywords.txt" });
-      }
-
-      // 3. Add Cover Image if exists
-      if (book.coverImageUrl && book.coverImageUrl.startsWith("data:image")) {
-        const base64Data = book.coverImageUrl.split(",")[1];
-        archive.append(Buffer.from(base64Data, "base64"), { name: "cover.png" });
-      }
-
-      // 4. Add Full Book Content as TXT
-      let fullContent = `${book.title}\n${"=".repeat(book.title.length)}\n\n`;
+      // manuscript.txt
+      let manuscript = `${book.title}\n${book.subtitle || ""}\nBy ${book.authorName}\n\n`;
       chapters.sort((a, b) => a.order - b.order).forEach(chap => {
-        fullContent += `Chapter ${chap.order}: ${chap.title}\n${"-".repeat(chap.title.length + 11)}\n\n${chap.content || ""}\n\n`;
+        manuscript += `CHAPTER ${chap.order}: ${chap.title}\n\n${chap.content || ""}\n\n`;
       });
-      archive.append(fullContent, { name: "book_content.txt" });
+      archive.append(manuscript, { name: "manuscript.txt" });
+
+      // chapter_data.json
+      archive.append(JSON.stringify(chapters, null, 2), { name: "chapter_data.json" });
+
+      // metadata_pack.txt
+      let metadata = `Title: ${book.title}\nKeywords: ${book.keywords?.join(", ") || ""}\nBlurb: ${book.outline || ""}\n`;
+      archive.append(metadata, { name: "metadata_pack.txt" });
+
+      // series_bible.json
+      const bible = { title: book.title, transparencyReport: book.transparencyReport, isKdpCompliant: book.isKdpCompliant };
+      archive.append(JSON.stringify(bible, null, 2), { name: "series_bible.json" });
 
       await archive.finalize();
     } catch (error) {
-      console.error("Export Project Error:", error);
-      res.status(500).json({ message: "Failed to export project" });
-    }
-  });
-
-  // PDF Export
-  app.get("/api/books/:id/export-pdf", async (req, res) => {
-    try {
-      const bookId = Number(req.params.id);
-      const book = await storage.getBook(bookId);
-      if (!book) return res.status(404).json({ message: "Book not found" });
-
-      const chapters = await storage.getChapters(bookId);
-
-      const doc = new PDFDocument({
-        size: 'A4',
-        margins: { top: 72, bottom: 72, left: 72, right: 72 },
-        bufferPages: true
-      });
-
-      res.setHeader('Content-Type', 'application/pdf');
-      res.setHeader('Content-Disposition', `attachment; filename="${book.title.replace(/[^a-zA-Z0-9]/g, '_')}.pdf"`);
-
-      doc.pipe(res);
-
-      const pageWidth = doc.page.width - doc.page.margins.left - doc.page.margins.right;
-
-      // Title Page - elegant centered design
-      doc.moveDown(6);
-      doc.fontSize(32).font('Helvetica-Bold').text(book.title, { align: 'center' });
-      if (book.subtitle) {
-        doc.moveDown(0.8);
-        doc.fontSize(18).font('Helvetica-Oblique').text(book.subtitle, { align: 'center' });
-      }
-      doc.moveDown(3);
-      doc.fontSize(14).font('Helvetica').text(`by`, { align: 'center' });
-      doc.moveDown(0.3);
-      doc.fontSize(16).font('Helvetica-Bold').text(book.authorName, { align: 'center' });
-
-      // Copyright Page
-      doc.addPage();
-      doc.moveDown(20);
-      doc.fontSize(10).font('Helvetica').text(book.copyright || `© ${new Date().getFullYear()} ${book.authorName}. All rights reserved.`, { align: 'center' });
-      doc.moveDown(1);
-      doc.text('This is a work of fiction. Names, characters, places, and incidents either are the product of the author’s imagination or are used fictitiously. Any resemblance to actual persons, living or dead, events, or locales is entirely coincidental.', { align: 'center', width: pageWidth * 0.8, indent: pageWidth * 0.1 });
-
-      // Dedication Page
-      if (book.dedication) {
-        doc.addPage();
-        doc.moveDown(12);
-        doc.fontSize(14).font('Helvetica-Oblique').text(book.dedication, { align: 'center' });
-      }
-
-      // Table of Contents - Professional KDP style
-      doc.addPage();
-      doc.moveDown(1);
-      doc.fontSize(24).font('Helvetica-Bold').text('Contents', { align: 'center' });
-      doc.moveDown(1);
-
-      const sortedChapters = chapters.sort((a, b) => a.order - b.order);
-      
-      // Draw TOC entries with professional layout
-      sortedChapters.forEach((chapter) => {
-        const startX = doc.page.margins.left + 40;
-        const endX = doc.page.width - doc.page.margins.right - 40;
-        const y = doc.y;
-        
-        doc.fontSize(12).font('Helvetica').fillColor('#333333');
-        doc.text(`Chapter ${chapter.order}: ${chapter.title}`, startX, y);
-        
-        doc.moveDown(0.5);
-      });
-
-      // Chapters with images
-      for (const chapter of sortedChapters) {
-        doc.addPage();
-        
-        // Chapter indicator
-        doc.moveDown(2);
-        doc.fontSize(10).font('Helvetica').fillColor('#888888').text(`CHAPTER ${chapter.order}`, { align: 'center' });
-        doc.moveDown(0.5);
-        doc.fontSize(24).font('Helvetica-Bold').fillColor('#000000').text(chapter.title, { align: 'center' });
-        doc.moveDown(2);
-
-        // Chapter image
-        if (chapter.imageUrl && chapter.imageUrl.startsWith('data:image')) {
-          try {
-            const base64Data = chapter.imageUrl.split(',')[1];
-            if (base64Data) {
-              const imageBuffer = Buffer.from(base64Data, 'base64');
-              doc.image(imageBuffer, { 
-                fit: [pageWidth, 300],
-                align: 'center'
-              });
-              doc.moveDown(2);
-            }
-          } catch (imgError) {
-            console.error("Error embedding chapter image:", imgError);
-          }
-        }
-
-        // Chapter content with professional formatting (KDP compatible)
-        if (chapter.content) {
-          const paragraphs = chapter.content.split(/\n\n+/);
-          doc.fontSize(11).font('Helvetica').fillColor('#000000');
-          
-          paragraphs.forEach((paragraph) => {
-            const trimmed = paragraph.trim();
-            if (trimmed) {
-              doc.text(trimmed, {
-                align: 'justify',
-                lineGap: 4,
-                paragraphGap: 10,
-                indent: 20
-              });
-            }
-          });
-        }
-      }
-
-      // Conclusion Page
-      if (book.conclusion) {
-        doc.addPage();
-        doc.moveDown(4);
-        doc.fontSize(24).font('Helvetica-Bold').text('Conclusion', { align: 'center' });
-        doc.moveDown(2);
-        doc.fontSize(12).font('Helvetica').text(book.conclusion, { align: 'justify', lineGap: 6 });
-      }
-
-      // About the Author
-      if (book.authorBio) {
-        doc.addPage();
-        doc.moveDown(4);
-        doc.fontSize(24).font('Helvetica-Bold').text('About the Author', { align: 'center' });
-        doc.moveDown(2);
-        doc.fontSize(12).font('Helvetica').text(book.authorBio, { align: 'justify', lineGap: 6 });
-      }
-
-      doc.end();
-    } catch (error) {
-      console.error("PDF Export Error:", error);
-      res.status(500).json({ message: "Failed to export PDF" });
+      console.error("ZIP Export Error:", error);
+      res.status(500).json({ message: "Failed to export KDP Package" });
     }
   });
 
