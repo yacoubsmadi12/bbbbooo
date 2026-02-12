@@ -34,6 +34,10 @@ export const books = pgTable("books", {
   isBleed: boolean("is_bleed").notNull().default(false), // Bleed vs No Bleed
   coverFinish: text("cover_finish").notNull().default("Matte"), // Matte or Glossy
   coverImageUrl: text("cover_image_url"), // For Kindle cover
+  manuscriptPath: text("manuscript_path"),
+  metadataPack: jsonb("metadata_pack"),
+  isKdpCompliant: boolean("is_kdp_compliant").default(false),
+  transparencyReport: text("transparency_report"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -41,6 +45,7 @@ export const chapters = pgTable("chapters", {
   id: serial("id").primaryKey(),
   bookId: integer("book_id").notNull(),
   title: text("title").notNull(),
+  beatSheet: text("beat_sheet"), // Specific beats for the chapter
   summary: text("summary"), // Chapter specific summary
   content: text("content"),
   order: integer("order").notNull(),

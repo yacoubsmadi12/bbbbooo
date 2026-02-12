@@ -1,0 +1,41 @@
+**Role:** You are a Senior Full-Stack Engineer and AI Architect specializing in automated publishing pipelines and KDP (Kindle Direct Publishing) compliance.
+**Objective:** Build a modular "Book-Gen Engine" that produces 200+ page, publish-ready manuscripts that bypass AI detection through natural linguistic variance and strictly adhere to Amazon KDP’s Content Guidelines.
+
+### 1. SYSTEM ARCHITECTURE & MODULAR PIPELINE
+The engine must follow a stateless, multi-step generation flow to maintain "Long-Term Narrative Memory":
+1. **The Architect (Planning):** Generates a high-level 12-chapter outline with specific "Beat Sheets" for every section.
+2. **The Chronicler (Drafting):** Generates content section-by-section (not chapter-by-chapter) to ensure depth and avoid "rushed" endings.
+3. **The Humanizer (Refining):** A post-processing layer that injects linguistic "perplexities"—varying sentence length, sensory subtext, and removing AI-typical transition words (e.g., "In conclusion," "Moreover").
+4. **The Compliance Officer (Validation):** A final regex and LLM-check layer to scan for KDP violations (keyword stuffing, copyrighted terms, or hallucinated citations).
+
+### 2. BOOK STRUCTURE & FORMATTING RULES
+- **Length:** Minimum 50,000 words (approx. 200+ pages).
+- **Components:** Generate Title Page, Copyright (standard KDP boilerplate), dynamic Table of Contents, Introduction, 10–12 Chapters (with 3-5 sub-sections each), and a Conclusion.
+- **KDP Formatting:** Output must be optimized for 6x9 paperback standards. Use clear Heading 1 for Chapters and Heading 2 for Sections. No generic filler; every paragraph must advance the plot or thesis.
+
+### 3. LINGUISTIC & ANTI-DETECTION STRATEGY
+Instruct the generation model to:
+- **Vary Burstiness:** Alternate between short, punchy sentences and complex, flowing observations.
+- **Show, Don't Tell:** Use sensory descriptions (smell, texture, internal monologue) instead of abstract adjectives.
+- **Avoid "LLM-isms":** Strictly forbid the use of "delve," "unlocking," "tapestry," "testament," or "shimmering."
+- **Narrative Continuity:** Each section must ingest a "Memory JSON" of previous events/facts to prevent contradictions.
+
+### 4. KDP COMPLIANCE & ETHICS GUARDRAILS
+The system must programmatically reject or flag:
+- **IP Infringement:** No trademarked characters, universes (e.g., Marvel, Potter), or celebrity names.
+- **Metadata Integrity:** Titles and subtitles must be descriptive, not a string of keywords.
+- **Non-Originality:** Ensure the system does not summarize existing books or scrape web content. 
+- **AI Disclosure Ready:** The system must generate a "Transparency Report" for the user to assist with Amazon's AI-content disclosure requirements.
+
+### 5. TECHNICAL OUTPUTS & DATA MODELS
+The engine must produce a downloadable `ZIP` containing:
+1. `manuscript.docx` / `manuscript.pdf`: The KDP-ready file.
+2. `chapter_data.json`: A structured schema of the book's logic.
+3. `metadata_pack.txt`: Suggested Title, Subtitle, 7 Backend Keywords, and a Blurb (Description).
+4. `series_bible.json`: A memory file containing character traits, setting details, and world-building for future sequels.
+
+### 6. REPLIT IMPLEMENTATION INSTRUCTIONS
+- Use **Python/FastAPI** for the backend logic.
+- Implement **LangChain** or a similar framework to manage the recursive "Outline -> Section -> Refine" loop.
+- Use **Markdown-it** or a similar library to convert the final text into professional PDF/DOCX formatting.
+- Create a simple **Streamlit** or **React** frontend to input the "Book Prompt" and track generation progress in real-time.

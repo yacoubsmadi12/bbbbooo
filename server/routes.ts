@@ -127,35 +127,29 @@ export async function registerRoutes(
       if (!book) return res.status(404).json({ message: "Book not found" });
 
       const prompt = `
-        Create a highly detailed and comprehensive book outline, author biography, and conclusion for a novel optimized for Amazon KDP publication:
-        Title: ${book.title}
-        Subtitle: ${book.subtitle}
-        Author: ${book.authorName}
-        Category: ${book.category}
-        Target Audience: ${book.targetAudience}
-        Tone: ${book.toneStyle}
-        POV: ${book.pov}
-        Total Target Chapters: ${book.targetChapters}
-        Trim Size: ${book.trimSize}
-        Paper Type: ${book.paperType}
-        Cover Finish: ${book.coverFinish}
-
-        AMAZON KDP REQUIREMENTS & QUALITY STANDARDS:
-        - The outline must be extremely detailed and comprehensive, covering the entire narrative arc from start to finish.
-        - Ensure the book structure supports a length of at least 200+ pages (approx. 50,000 - 80,000 words).
-        - The author bio must be professional, marketing-oriented, and engaging.
-        - The dedication should be meaningful.
-        - The copyright page must be legally standard and include the ISBN placeholder.
-        - The chapters must follow a logical narrative arc suitable for a best-selling ${book.category} book.
-        - Each chapter summary must be substantial, providing a clear roadmap for generation.
-
+        **Role:** Senior AI Book Architect.
+        **Objective:** Generate a professional 12-chapter outline and Beat Sheets for the book "${book.title}".
+        
+        Book Details:
+        - Category: ${book.category}
+        - Tone: ${book.toneStyle}
+        - Target Audience: ${book.targetAudience}
+        - POV: ${book.pov}
+        
+        AMAZON KDP COMPLIANCE:
+        - Outline must support a 200+ page manuscript (50,000+ words).
+        - No copyrighted terms or trademarks.
+        
         Return a JSON object with:
-        1. "outline": A deep, comprehensive summary of the entire plot (approx 1000-1500 words).
-        2. "authorBio": A professional and engaging biography for ${book.authorName}.
-        3. "conclusion": A powerful and satisfying concluding section for the book.
-        4. "dedication": A heartfelt dedication page in English.
-        5. "copyright": A formal copyright notice in English.
-        6. "chapters": An array of ${book.targetChapters} objects, each having "title" and a VERY detailed "summary" (at least 200 words per summary) for each chapter.
+        1. "outline": Comprehensive narrative summary (1000+ words).
+        2. "authorBio": Engaging professional bio for ${book.authorName}.
+        3. "conclusion": Powerful ending summary.
+        4. "dedication": Meaningful dedication.
+        5. "copyright": Standard KDP copyright boilerplate.
+        6. "chapters": Array of objects:
+           - "title": Chapter name.
+           - "summary": Detailed summary.
+           - "beatSheet": Specific narrative beats (bullet points) for this chapter to ensure depth.
       `;
 
       const response = await openai.chat.completions.create({
@@ -166,16 +160,14 @@ export async function registerRoutes(
 
       const result = JSON.parse(response.choices[0].message.content || "{}");
       
-      // Update book with outline, author bio, conclusion, dedication and copyright
       await storage.updateBook(bookId, { 
         outline: result.outline,
         authorBio: result.authorBio,
         conclusion: result.conclusion,
-        dedication: result.dedication || `To all the dreamers and storytellers.`,
-        copyright: result.copyright || `© ${new Date().getFullYear()} ${book.authorName}. All rights reserved. No part of this publication may be reproduced or transmitted in any form or by any means without written permission from the author.`
+        dedication: result.dedication,
+        copyright: result.copyright
       });
 
-      // Create chapters
       const createdChapters = [];
       if (Array.isArray(result.chapters)) {
         let order = 1;
@@ -184,6 +176,7 @@ export async function registerRoutes(
             bookId,
             title: chap.title,
             summary: chap.summary,
+            beatSheet: chap.beatSheet,
             content: "",
             order: order++,
             isCompleted: false
@@ -193,9 +186,8 @@ export async function registerRoutes(
       }
 
       res.json({ outline: result.outline, chapters: createdChapters });
-
     } catch (error) {
-      console.error("AI Error:", error);
+      console.error("Architect Error:", error);
       res.status(500).json({ message: "Failed to generate outline" });
     }
   });
@@ -209,48 +201,84 @@ export async function registerRoutes(
       const book = await storage.getBook(chapter.bookId);
       if (!book) return res.status(404).json({ message: "Book not found" });
 
-      const prompt = `
-        Write Chapter ${chapter.order}: "${chapter.title}" for the book "${book.title}".
+      // Step 2: The Chronicler (Drafting)
+      const draftPrompt = `
+        **Role:** The Chronicler (Drafting).
+        **Task:** Write the full content for Chapter ${chapter.order}: "${chapter.title}".
         
-        AMAZON KDP QUALITY STANDARDS:
-        - Ensure high-quality literary prose.
-        - Adhere strictly to the requested tone and POV.
-        - Maintain narrative consistency with the outline.
-        - The length should be substantial and professional.
-
-        Book Context:
-        Category: ${book.category}
-        Tone: ${book.toneStyle}
-        POV: ${book.pov}
-        Target Audience: ${book.targetAudience}
-        Book Outline: ${book.outline}
-        Trim Size: ${book.trimSize}
-
-        Chapter Summary: ${chapter.summary}
+        Linguistic Strategy:
+        - Show, Don't Tell: Use sensory descriptions.
+        - Avoid AI-isms: No "delve", "unlocking", "tapestry", "testament", "shimmering".
+        - Vary sentence length (Burstiness).
         
-        Additional Instructions: ${context || "None"}
-
-        Write the full content for this chapter. Aim for around ${book.wordsPerChapter} words.
-        Ensure it flows well from previous chapters (if any context provided).
+        Context:
+        - Book: ${book.title}
+        - Tone: ${book.toneStyle}
+        - Beat Sheet: ${chapter.beatSheet}
+        - Summary: ${chapter.summary}
+        
+        Write approximately ${book.wordsPerChapter} words in professional literary prose.
       `;
 
-      const response = await openai.chat.completions.create({
+      const draftResponse = await openai.chat.completions.create({
         model: "gpt-5.2",
-        messages: [{ role: "user", content: prompt }],
+        messages: [{ role: "user", content: draftPrompt }],
       });
 
-      const content = response.choices[0].message.content || "";
+      let content = draftResponse.choices[0].message.content || "";
 
-      // Update chapter
+      // Step 3: The Humanizer (Refining)
+      const refinePrompt = `
+        **Role:** The Humanizer (Refining).
+        **Task:** Refine the following text to remove AI-typical transitions and inject natural linguistic variance.
+        
+        Instructions:
+        - Remove "In conclusion", "Moreover", "Additionally".
+        - Inject sensory subtext.
+        - Ensure a natural, human-like flow.
+        
+        Text: ${content}
+      `;
+
+      const refineResponse = await openai.chat.completions.create({
+        model: "gpt-5.2",
+        messages: [{ role: "user", content: refinePrompt }],
+      });
+
+      content = refineResponse.choices[0].message.content || content;
+
+      // Step 4: The Compliance Officer (Validation)
+      const compliancePrompt = `
+        **Role:** KDP Compliance Officer.
+        **Task:** Scan the text for Amazon KDP violations (copyrighted terms, trademarks, trademarked characters).
+        
+        Text: ${content}
+        
+        Return a JSON object:
+        { "isCompliant": boolean, "violations": string[], "transparencyReport": string }
+      `;
+
+      const complianceResponse = await openai.chat.completions.create({
+        model: "gpt-5.2",
+        messages: [{ role: "user", content: compliancePrompt }],
+        response_format: { type: "json_object" },
+      });
+
+      const compliance = JSON.parse(complianceResponse.choices[0].message.content || "{}");
+
       await storage.updateChapter(chapterId, { 
         content: content,
-        wordCount: content.split(/\s+/).filter(w => w.length > 0).length
+        wordCount: content.split(/\s+/).length
       });
 
-      res.json({ content });
+      await storage.updateBook(book.id, {
+        isKdpCompliant: compliance.isCompliant,
+        transparencyReport: compliance.transparencyReport
+      });
 
+      res.json({ content, compliance });
     } catch (error) {
-      console.error("AI Error:", error);
+      console.error("Chronicler Error:", error);
       res.status(500).json({ message: "Failed to generate chapter" });
     }
   });
