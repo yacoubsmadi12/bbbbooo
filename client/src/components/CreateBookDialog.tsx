@@ -109,10 +109,24 @@ export function CreateBookDialog() {
                 control={form.control}
                 name="title"
                 render={({ field }) => (
-                  <FormItem className="col-span-2">
+                  <FormItem>
                     <FormLabel className="flex justify-start">Book Title</FormLabel>
                     <FormControl>
                       <Input placeholder="A Great Title" className="font-serif text-lg" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="subtitle"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="flex justify-start">Subtitle</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Optional Subtitle" {...field} value={field.value || ""} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
