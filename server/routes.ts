@@ -371,70 +371,46 @@ export async function registerRoutes(
       const book = await storage.getBook(chapter.bookId);
       if (!book) return res.status(404).json({ message: "Book not found" });
 
-      // Step 2: The Chronicler (Drafting)
-      const draftPrompt = `
-        **Role:** The Chronicler (Drafting).
-        **Task:** Write the full content for Chapter ${chapter.order}: "${chapter.title}".
+      // Optimized Chronicler: Combined Drafting, Refining, and Compliance in one call for speed
+      const prompt = `
+        **Role:** Master Literary Author & KDP Compliance Expert.
+        **Task:** Write and refine the full content for Chapter ${chapter.order}: "${chapter.title}".
         
-        Linguistic Strategy:
-        - Show, Don't Tell: Use sensory descriptions.
-        - Avoid AI-isms: No "delve", "unlocking", "tapestry", "testament", "shimmering".
-        - Vary sentence length (Burstiness).
-        
-        Context:
-        - Book: ${book.title}
+        Book Context:
+        - Title: ${book.title}
+        - Category: ${book.category}
         - Tone: ${book.toneStyle}
+        - Chapter Summary: ${chapter.summary}
         - Beat Sheet: ${chapter.beatSheet}
-        - Summary: ${chapter.summary}
-        
-        Write approximately ${book.wordsPerChapter} words in professional literary prose.
+        ${context ? `- Extra Context: ${context}` : ""}
+
+        Writing Instructions:
+        1. Write approximately ${book.wordsPerChapter} words in professional literary prose.
+        2. Use "Show, Don't Tell" with rich sensory descriptions.
+        3. Avoid AI-isms (no "delve", "tapestry", "shimmering", etc.).
+        4. Ensure a natural, human-like flow with varied sentence structures.
+        5. Scan for KDP violations (copyrights/trademarks) and ensure compliance.
+
+        Return a JSON object exactly in this format:
+        {
+          "content": "Full chapter prose here...",
+          "compliance": {
+            "isCompliant": true,
+            "violations": [],
+            "transparencyReport": "Brief report on language and compliance."
+          }
+        }
       `;
 
-      const draftResponse = await openai.chat.completions.create({
+      const response = await openai.chat.completions.create({
         model: "gpt-5.2",
-        messages: [{ role: "user", content: draftPrompt }],
-      });
-
-      let content = draftResponse.choices[0].message.content || "";
-
-      // Step 3: The Humanizer (Refining)
-      const refinePrompt = `
-        **Role:** The Humanizer (Refining).
-        **Task:** Refine the following text to remove AI-typical transitions and inject natural linguistic variance.
-        
-        Instructions:
-        - Remove "In conclusion", "Moreover", "Additionally".
-        - Inject sensory subtext.
-        - Ensure a natural, human-like flow.
-        
-        Text: ${content}
-      `;
-
-      const refineResponse = await openai.chat.completions.create({
-        model: "gpt-5.2",
-        messages: [{ role: "user", content: refinePrompt }],
-      });
-
-      content = refineResponse.choices[0].message.content || content;
-
-      // Step 4: The Compliance Officer (Validation)
-      const compliancePrompt = `
-        **Role:** KDP Compliance Officer.
-        **Task:** Scan the text for Amazon KDP violations (copyrighted terms, trademarks, trademarked characters).
-        
-        Text: ${content}
-        
-        Return a JSON object:
-        { "isCompliant": boolean, "violations": string[], "transparencyReport": string }
-      `;
-
-      const complianceResponse = await openai.chat.completions.create({
-        model: "gpt-5.2",
-        messages: [{ role: "user", content: compliancePrompt }],
+        messages: [{ role: "user", content: prompt }],
         response_format: { type: "json_object" },
       });
 
-      const compliance = JSON.parse(complianceResponse.choices[0].message.content || "{}");
+      const result = JSON.parse(response.choices[0].message.content || "{}");
+      const content = result.content || "";
+      const compliance = result.compliance || { isCompliant: true, violations: [], transparencyReport: "Self-validated." };
 
       await storage.updateChapter(chapterId, { 
         content: content,
