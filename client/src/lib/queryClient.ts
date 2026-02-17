@@ -12,10 +12,13 @@ export async function apiRequest(
   url: string,
   data?: unknown | undefined,
 ): Promise<Response> {
+  const model = localStorage.getItem("ai_model") || "openai";
+  const body = data ? { ...(data as object), model } : { model };
+
   const res = await fetch(url, {
     method,
-    headers: data ? { "Content-Type": "application/json" } : {},
-    body: data ? JSON.stringify(data) : undefined,
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
     credentials: "include",
   });
 
