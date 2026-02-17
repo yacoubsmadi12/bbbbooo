@@ -11,7 +11,7 @@ const viteLogger = createLogger();
 export async function setupVite(server: Server, app: Express) {
   const serverOptions = {
     middlewareMode: true,
-    hmr: { server, path: "/vite-hmr" },
+    hmr: { server },
     allowedHosts: true as const,
   };
 
@@ -31,7 +31,11 @@ export async function setupVite(server: Server, app: Express) {
 
   app.use(vite.middlewares);
 
-  app.use("/{*path}", async (req, res, next) => {
+  app.use(async (req, res, next) => {
+    if (req.method !== "GET" || req.path.startsWith("/api")) {
+      return next();
+    }
+
     const url = req.originalUrl;
 
     try {
@@ -46,15 +50,14 @@ export async function setupVite(server: Server, app: Express) {
       let template = await fs.promises.readFile(clientTemplate, "utf-8");
       template = template.replace(
         `src="/src/main.tsx"`,
-        `src="/src/main.tsx"`
+        `src="/src/main.tsx?v=${nanoid()}"`,
       );
       const page = await vite.transformIndexHtml(url, template);
       res.status(200).set({ 
         "Content-Type": "text/html",
-        "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "Cache-Control": "no-cache, no-store, must-revalidate",
         "Pragma": "no-cache",
-        "Expires": "0",
-        "Surrogate-Control": "no-store"
+        "Expires": "0"
       }).end(page);
     } catch (e) {
       vite.ssrFixStacktrace(e as Error);
