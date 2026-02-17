@@ -84,6 +84,22 @@ export default function Settings() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label>Use Anthropic (Claude)</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Enable Claude 3.5 Sonnet for text generation.
+                  </p>
+                </div>
+                <Switch 
+                  checked={localStorage.getItem("ai_model") === "anthropic"}
+                  onCheckedChange={(checked) => {
+                    localStorage.setItem("ai_model", checked ? "anthropic" : "openai");
+                    window.location.reload();
+                  }}
+                  data-testid="switch-ai-model"
+                />
+              </div>
               <div className="p-4 bg-muted rounded-md border border-dashed text-center text-sm text-muted-foreground">
                 AI settings are currently managed via Replit Integrations.
               </div>

@@ -4,6 +4,7 @@ import { storage } from "./storage";
 import { api } from "@shared/routes";
 import { z } from "zod";
 import OpenAI from "openai";
+import Anthropic from "@anthropic-ai/sdk";
 import PDFDocument from "pdfkit";
 import fs from "fs/promises";
 import path from "path";
@@ -11,6 +12,11 @@ import path from "path";
 const openai = new OpenAI({
   apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
   baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
+});
+
+const anthropic = new Anthropic({
+  apiKey: process.env.AI_INTEGRATIONS_ANTHROPIC_API_KEY,
+  baseURL: process.env.AI_INTEGRATIONS_ANTHROPIC_BASE_URL,
 });
 
 // Helper for story state
@@ -50,6 +56,7 @@ export async function registerRoutes(
       const book = await storage.getBook(bookId);
       if (!book) return res.status(404).json({ message: "Book 2 not found" });
 
+      const model = req.body.model || "openai";
       const prompt = `
         **Role:** Dark Romance Narrative Architect.
         **Objective:** Generate a 15-chapter outline for "Shadow of Obsession".
@@ -64,13 +71,23 @@ export async function registerRoutes(
         Return JSON format.
       `;
 
-      const architectResponse = await openai.chat.completions.create({
-        model: "gpt-4o",
-        messages: [{ role: "user", content: prompt }],
-        response_format: { type: "json_object" },
-      });
-
-      const result = JSON.parse(architectResponse.choices[0].message.content || "{}");
+      let result;
+      if (model === "anthropic") {
+        const response = await anthropic.messages.create({
+          model: "claude-3-5-sonnet-20241022",
+          max_tokens: 8192,
+          messages: [{ role: "user", content: prompt }],
+        });
+        const content = response.content[0].type === 'text' ? response.content[0].text : "";
+        result = JSON.parse(content || "{}");
+      } else {
+        const architectResponse = await openai.chat.completions.create({
+          model: "gpt-4o",
+          messages: [{ role: "user", content: prompt }],
+          response_format: { type: "json_object" },
+        });
+        result = JSON.parse(architectResponse.choices[0].message.content || "{}");
+      }
       
       // Delete existing chapters for book 2 to avoid duplicates during re-architecting
       const existing = await storage.getChapters(bookId);
@@ -107,6 +124,7 @@ export async function registerRoutes(
       const chapter = await storage.getChapter(chapterId);
       if (!chapter) return res.status(404).json({ message: "Chapter not found" });
       
+      const model = req.body.model || "openai";
       const bibleData = JSON.parse(await fs.readFile(BIBLE_PATH, "utf-8"));
       
       const prompt = `
@@ -121,12 +139,21 @@ export async function registerRoutes(
         Prose: Dark Romance, sensory, intense.
       `;
 
-      const response = await openai.chat.completions.create({
-        model: "gpt-5.2",
-        messages: [{ role: "user", content: prompt }],
-      });
-
-      const newContent = response.choices[0].message.content || "";
+      let newContent = "";
+      if (model === "anthropic") {
+        const response = await anthropic.messages.create({
+          model: "claude-3-5-sonnet-20241022",
+          max_tokens: 8192,
+          messages: [{ role: "user", content: prompt }],
+        });
+        newContent = response.content[0].type === 'text' ? response.content[0].text : "";
+      } else {
+        const response = await openai.chat.completions.create({
+          model: "gpt-5.2",
+          messages: [{ role: "user", content: prompt }],
+        });
+        newContent = response.choices[0].message.content || "";
+      }
       const updatedContent = (chapter.content || "") + "\n\n" + newContent;
       
       await storage.updateChapter(chapterId, { 
@@ -210,6 +237,7 @@ export async function registerRoutes(
           });
         }
 
+        const model = req.body.model || "openai";
         // Logic for generating 15 chapters (The Architect)
         const architectPrompt = `
           **Role:** Dark Romance Narrative Architect.
@@ -222,13 +250,23 @@ export async function registerRoutes(
           Return JSON format: { "chapters": [...] }
         `;
 
-        const response = await openai.chat.completions.create({
-          model: "gpt-5.2",
-          messages: [{ role: "user", content: architectPrompt }],
-          response_format: { type: "json_object" },
-        });
-
-        const result = JSON.parse(response.choices[0].message.content || "{}");
+        let result;
+        if (model === "anthropic") {
+          const response = await anthropic.messages.create({
+            model: "claude-3-5-sonnet-20241022",
+            max_tokens: 8192,
+            messages: [{ role: "user", content: architectPrompt }],
+          });
+          const content = response.content[0].type === 'text' ? response.content[0].text : "";
+          result = JSON.parse(content || "{}");
+        } else {
+          const response = await openai.chat.completions.create({
+            model: "gpt-5.2",
+            messages: [{ role: "user", content: architectPrompt }],
+            response_format: { type: "json_object" },
+          });
+          result = JSON.parse(response.choices[0].message.content || "{}");
+        }
         if (Array.isArray(result.chapters)) {
           let order = 1;
           for (const chap of result.chapters) {
@@ -296,6 +334,7 @@ export async function registerRoutes(
       const book = await storage.getBook(bookId);
       if (!book) return res.status(404).json({ message: "Book not found" });
 
+      const model = req.body.model || "openai";
       const prompt = `
         **Role:** Senior AI Book Architect.
         **Objective:** Generate a professional 12-chapter outline and Beat Sheets for the book "${book.title}".
@@ -322,13 +361,23 @@ export async function registerRoutes(
            - "beatSheet": Specific narrative beats (bullet points) for this chapter to ensure depth.
       `;
 
-      const architectResponse = await openai.chat.completions.create({
-        model: "gpt-4o",
-        messages: [{ role: "user", content: prompt }],
-        response_format: { type: "json_object" },
-      });
-
-      const result = JSON.parse(architectResponse.choices[0].message.content || "{}");
+      let result;
+      if (model === "anthropic") {
+        const response = await anthropic.messages.create({
+          model: "claude-3-5-sonnet-20241022",
+          max_tokens: 8192,
+          messages: [{ role: "user", content: prompt }],
+        });
+        const content = response.content[0].type === 'text' ? response.content[0].text : "";
+        result = JSON.parse(content || "{}");
+      } else {
+        const architectResponse = await openai.chat.completions.create({
+          model: "gpt-4o",
+          messages: [{ role: "user", content: prompt }],
+          response_format: { type: "json_object" },
+        });
+        result = JSON.parse(architectResponse.choices[0].message.content || "{}");
+      }
       
       await storage.updateBook(bookId, { 
         outline: result.outline,
@@ -371,6 +420,7 @@ export async function registerRoutes(
       const book = await storage.getBook(chapter.bookId);
       if (!book) return res.status(404).json({ message: "Book not found" });
 
+      const model = req.body.model || "openai";
       // Optimized Chronicler: Combined Drafting, Refining, and Compliance in one call for speed
       const prompt = `
         **Role:** Master Literary Author & KDP Compliance Expert.
@@ -402,18 +452,22 @@ export async function registerRoutes(
         }
       `;
 
-      const response = await openai.chat.completions.create({
-        model: "gpt-4o", // Using gpt-4o for better JSON reliability and speed
-        messages: [{ role: "user", content: prompt }],
-        response_format: { type: "json_object" },
-      });
-
       let result;
-      try {
+      if (model === "anthropic") {
+        const response = await anthropic.messages.create({
+          model: "claude-3-5-sonnet-20241022",
+          max_tokens: 8192,
+          messages: [{ role: "user", content: prompt }],
+        });
+        const content = response.content[0].type === 'text' ? response.content[0].text : "";
+        result = JSON.parse(content || "{}");
+      } else {
+        const response = await openai.chat.completions.create({
+          model: "gpt-4o",
+          messages: [{ role: "user", content: prompt }],
+          response_format: { type: "json_object" },
+        });
         result = JSON.parse(response.choices[0].message.content || "{}");
-      } catch (e) {
-        console.error("JSON Parse Error:", e);
-        throw new Error("AI returned malformed JSON response. Please try again.");
       }
       const content = result.content || "";
       const compliance = result.compliance || { isCompliant: true, violations: [], transparencyReport: "Self-validated." };
@@ -524,6 +578,7 @@ Visual Requirements:
       const book = await storage.getBook(bookId);
       if (!book) return res.status(404).json({ message: "Book not found" });
 
+      const model = req.body.model || "openai";
       const prompt = `Generate 7 highly effective SEO keyword phrases for an Amazon Kindle book with these details:
 Title: ${book.title}
 Category: ${book.category}
@@ -532,13 +587,23 @@ Outline: ${book.outline}
 
 Return a JSON object with a single key "keywords" which is an array of 7 string phrases. Each phrase should be 20-50 characters.`;
 
-      const response = await openai.chat.completions.create({
-        model: "gpt-4o",
-        messages: [{ role: "user", content: prompt }],
-        response_format: { type: "json_object" },
-      });
-
-      const result = JSON.parse(response.choices[0].message.content || "{}");
+      let result;
+      if (model === "anthropic") {
+        const response = await anthropic.messages.create({
+          model: "claude-3-5-sonnet-20241022",
+          max_tokens: 8192,
+          messages: [{ role: "user", content: prompt }],
+        });
+        const content = response.content[0].type === 'text' ? response.content[0].text : "";
+        result = JSON.parse(content || "{}");
+      } else {
+        const response = await openai.chat.completions.create({
+          model: "gpt-4o",
+          messages: [{ role: "user", content: prompt }],
+          response_format: { type: "json_object" },
+        });
+        result = JSON.parse(response.choices[0].message.content || "{}");
+      }
       await storage.updateBook(bookId, { keywords: result.keywords });
       res.json(result);
     } catch (error) {
