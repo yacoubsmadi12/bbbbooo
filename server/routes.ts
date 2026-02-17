@@ -64,13 +64,13 @@ export async function registerRoutes(
         Return JSON format.
       `;
 
-      const response = await openai.chat.completions.create({
-        model: "gpt-5.2",
+      const architectResponse = await openai.chat.completions.create({
+        model: "gpt-4o",
         messages: [{ role: "user", content: prompt }],
         response_format: { type: "json_object" },
       });
 
-      const result = JSON.parse(response.choices[0].message.content || "{}");
+      const result = JSON.parse(architectResponse.choices[0].message.content || "{}");
       
       // Delete existing chapters for book 2 to avoid duplicates during re-architecting
       const existing = await storage.getChapters(bookId);
@@ -322,13 +322,13 @@ export async function registerRoutes(
            - "beatSheet": Specific narrative beats (bullet points) for this chapter to ensure depth.
       `;
 
-      const response = await openai.chat.completions.create({
-        model: "gpt-5.2",
+      const architectResponse = await openai.chat.completions.create({
+        model: "gpt-4o",
         messages: [{ role: "user", content: prompt }],
         response_format: { type: "json_object" },
       });
 
-      const result = JSON.parse(response.choices[0].message.content || "{}");
+      const result = JSON.parse(architectResponse.choices[0].message.content || "{}");
       
       await storage.updateBook(bookId, { 
         outline: result.outline,
@@ -403,12 +403,18 @@ export async function registerRoutes(
       `;
 
       const response = await openai.chat.completions.create({
-        model: "gpt-5.2",
+        model: "gpt-4o", // Using gpt-4o for better JSON reliability and speed
         messages: [{ role: "user", content: prompt }],
         response_format: { type: "json_object" },
       });
 
-      const result = JSON.parse(response.choices[0].message.content || "{}");
+      let result;
+      try {
+        result = JSON.parse(response.choices[0].message.content || "{}");
+      } catch (e) {
+        console.error("JSON Parse Error:", e);
+        throw new Error("AI returned malformed JSON response. Please try again.");
+      }
       const content = result.content || "";
       const compliance = result.compliance || { isCompliant: true, violations: [], transparencyReport: "Self-validated." };
 
