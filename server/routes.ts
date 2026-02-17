@@ -598,17 +598,40 @@ Return a JSON object with a single key "keywords" which is an array of 7 string 
       // Chapters
       for (const chapter of sortedChapters) {
         doc.addPage();
-        doc.moveDown(2);
-        doc.fontSize(18).font('Helvetica-Bold').text(`Chapter ${chapter.order}: ${chapter.title}`, { align: 'center' });
+        
+        // Add Chapter Image if exists
+        if (chapter.imageUrl) {
+          try {
+            const base64Data = chapter.imageUrl.replace(/^data:image\/\w+;base64,/, "");
+            const imgBuffer = Buffer.from(base64Data, 'base64');
+            // Center image on page, fitting within margins
+            doc.image(imgBuffer, doc.page.margins.left, doc.y, {
+              fit: [pageWidth, 250],
+              align: 'center'
+            });
+            doc.moveDown(2);
+          } catch (e) {
+            console.error("Error adding image to PDF:", e);
+          }
+        }
+
+        doc.moveDown(1);
+        doc.fontSize(22).font('Helvetica-Bold').text(`Chapter ${chapter.order}`, { align: 'center' });
+        doc.fontSize(16).font('Helvetica').text(chapter.title, { align: 'center' });
         doc.moveDown(2);
 
         if (chapter.content) {
           const paragraphs = chapter.content.split(/\n\n+/);
-          doc.fontSize(11).font('Times-Roman').fillColor('#000000');
+          doc.fontSize(12).font('Times-Roman').fillColor('#000000');
           paragraphs.forEach((paragraph) => {
             const trimmed = paragraph.trim();
             if (trimmed) {
-              doc.text(trimmed, { align: 'justify', lineGap: 3, paragraphGap: 8, indent: 18 });
+              doc.text(trimmed, { 
+                align: 'justify', 
+                lineGap: 4, 
+                paragraphGap: 12, 
+                indent: 20 
+              });
             }
           });
         }
