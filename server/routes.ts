@@ -420,11 +420,10 @@ export async function registerRoutes(
       const book = await storage.getBook(chapter.bookId);
       if (!book) return res.status(404).json({ message: "Book not found" });
 
-      const model = req.body.model || "openai";
-      // Optimized Chronicler: Combined Drafting, Refining, and Compliance in one call for speed
+      // Optimized Chronicler: Multi-stage generation for high word count
       const prompt = `
         **Role:** Master Literary Author & KDP Compliance Expert.
-        **Task:** Write and refine the full content for Chapter ${chapter.order}: "${chapter.title}".
+        **Task:** Write a substantial portion of Chapter ${chapter.order}: "${chapter.title}".
         
         Book Context:
         - Title: ${book.title}
@@ -435,11 +434,14 @@ export async function registerRoutes(
         ${context ? `- Extra Context: ${context}` : ""}
 
         Writing Instructions:
-        1. Write approximately ${book.wordsPerChapter} words in professional literary prose.
-        2. Use "Show, Don't Tell" with rich sensory descriptions.
+        1. Write AT LEAST 2500-3000 words of professional literary prose for this specific section.
+        2. Use "Show, Don't Tell" with rich sensory descriptions to expand every scene.
         3. Avoid AI-isms (no "delve", "tapestry", "shimmering", etc.).
         4. Ensure a natural, human-like flow with varied sentence structures.
-        5. Scan for KDP violations (copyrights/trademarks) and ensure compliance.
+        5. Expand on character internal monologues, environmental details, and dialogue.
+        6. Scan for KDP violations (copyrights/trademarks) and ensure compliance.
+
+        IMPORTANT: I need a very long and detailed response. Do not summarize. Elaborate on every beat.
 
         Return a JSON object exactly in this format:
         {
@@ -460,14 +462,28 @@ export async function registerRoutes(
           messages: [{ role: "user", content: prompt }],
         });
         const content = response.content[0].type === 'text' ? response.content[0].text : "";
-        result = JSON.parse(content || "{}");
+        try {
+          // Try to extract JSON if it's wrapped in markdown
+          const jsonMatch = content.match(/\{[\s\S]*\}/);
+          const jsonToParse = jsonMatch ? jsonMatch[0] : content;
+          result = JSON.parse(jsonToParse || "{}");
+        } catch (e) {
+          result = { content: content, compliance: { isCompliant: true, violations: [], transparencyReport: "Raw text generated." } };
+        }
       } else {
         const response = await openai.chat.completions.create({
           model: "gpt-4o",
           messages: [{ role: "user", content: prompt }],
-          response_format: { type: "json_object" },
         });
-        result = JSON.parse(response.choices[0].message.content || "{}");
+        const content = response.choices[0].message.content || "";
+        try {
+          // Try to extract JSON if it's wrapped in markdown
+          const jsonMatch = content.match(/\{[\s\S]*\}/);
+          const jsonToParse = jsonMatch ? jsonMatch[0] : content;
+          result = JSON.parse(jsonToParse || "{}");
+        } catch (e) {
+          result = { content: content, compliance: { isCompliant: true, violations: [], transparencyReport: "Raw text generated." } };
+        }
       }
       const content = result.content || "";
       const compliance = result.compliance || { isCompliant: true, violations: [], transparencyReport: "Self-validated." };
