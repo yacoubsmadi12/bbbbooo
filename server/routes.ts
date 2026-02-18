@@ -420,6 +420,7 @@ export async function registerRoutes(
       const book = await storage.getBook(chapter.bookId);
       if (!book) return res.status(404).json({ message: "Book not found" });
 
+      const model = req.body.model || "openai";
       // Optimized Chronicler: Multi-stage generation for high word count
       const prompt = `
         **Role:** Master Literary Author & KDP Compliance Expert.
